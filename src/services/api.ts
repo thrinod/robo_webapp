@@ -16,6 +16,29 @@ const api = axios.create({
     },
 });
 
+api.interceptors.request.use((config) => {
+    if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('app_password');
+        if (token) {
+            config.headers['X-App-Token'] = token;
+        }
+    }
+    return config;
+});
+
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('app_password');
+                window.location.reload();
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 // Auth & Status
 export const getUpstoxStatus = async () => {
     try {

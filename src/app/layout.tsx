@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 };
 
 import ThemeRegistry from "@/components/ThemeRegistry";
+import AuthProvider from "@/components/AuthProvider";
 
 export default function RootLayout({
   children,
@@ -20,12 +21,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <ThemeRegistry>
-          <Navbar />
-          <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-            {children}
-          </main>
-        </ThemeRegistry>
+        <AuthProvider>
+          <ThemeRegistry>
+            <Navbar />
+            <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+              {children}
+            </main>
+          </ThemeRegistry>
+        </AuthProvider>
       </body>
     </html>
   );
