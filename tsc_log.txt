@@ -1,0 +1,10 @@
+﻿src/app/scanner/page.tsx(57,28): error TS2304: Cannot find name 'getScannerInstruments'.
+src/app/scanner/page.tsx(74,36): error TS2552: Cannot find name 'getScannerData'. Did you mean 'setScannerData'?
+src/app/scanner/page.tsx(96,15): error TS2304: Cannot find name 'removeScannerInstrument'.
+src/app/scanner/page.tsx(113,15): error TS2304: Cannot find name 'addScannerInstruments'.
+src/app/scanner/page.tsx(252,36): error TS2304: Cannot find name 'interval'.
+src/app/scanner/page.tsx(264,51): error TS2304: Cannot find name 'autoRefresh'.
+src/app/scanner/page.tsx(264,79): error TS2304: Cannot find name 'setAutoRefresh'.
+src/app/scanner/page.tsx(272,36): error TS2552: Cannot find name 'newInstrument'. Did you mean 'instruments'?
+src/app/scanner/page.tsx(273,46): error TS2552: Cannot find name 'setNewInstrument'. Did you mean 'setInstruments'?
+src/app/scanner/page.tsx(277,46): error TS2552: Cannot find name 'addInstrument'. Did you mean 'instruments'?
