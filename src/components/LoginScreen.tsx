@@ -18,22 +18,18 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         setIsLoading(true);
 
         try {
-            // Temporarily set token to test the health endpoint
-            localStorage.setItem('app_password', password);
+            const validPassword = process.env.NEXT_PUBLIC_APP_PASSWORD || "thrinod";
             
-            // Call any protected endpoint to verify, e.g. /health
-            await api.get('/health');
-            
-            // If it succeeds, we are authenticated
-            onLoginSuccess();
-            
-        } catch (err: any) {
-            localStorage.removeItem('app_password');
-            if (err.response && err.response.status === 401) {
-                setError('Invalid App Password');
+            if (password === validPassword) {
+                // If it matches, we are authenticated
+                localStorage.setItem('app_password', password);
+                onLoginSuccess();
             } else {
-                setError('Failed to connect to backend server');
+                localStorage.removeItem('app_password');
+                setError('Invalid App Password');
             }
+        } catch (err: any) {
+            setError('An error occurred during authentication');
         } finally {
             setIsLoading(false);
         }
