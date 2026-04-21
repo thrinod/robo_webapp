@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Briefcase, TrendingUp, LineChart, Database, Activity, ClipboardList, Settings, ChevronDown } from "lucide-react";
+import { LayoutDashboard, Briefcase, TrendingUp, LineChart, Database, Activity, ClipboardList, Settings, ChevronDown, Calculator } from "lucide-react";
 import clsx from "clsx";
 import { useState, useContext, MouseEvent } from "react";
 import { ColorModeContext } from "@/components/ThemeRegistry";
@@ -25,6 +25,7 @@ const navItems = [
         children: [
             { name: "Data Viewer", href: "/data-viewer", icon: Database },
             { name: "Paper Trading", href: "/paper-trading", icon: ClipboardList },
+            { name: "Compound Calculator", href: "/compound-calculator", icon: Calculator },
         ]
     }
 ];

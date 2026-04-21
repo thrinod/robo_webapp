@@ -20,7 +20,7 @@ api.interceptors.request.use((config) => {
     if (typeof window !== 'undefined') {
         const token = localStorage.getItem('app_password');
         if (token) {
-            config.headers['X-App-Token'] = token;
+            config.headers.set('X-App-Token', token);
         }
     }
     return config;
@@ -31,8 +31,15 @@ api.interceptors.response.use(
     (error) => {
         if (error.response && error.response.status === 401) {
             if (typeof window !== 'undefined') {
+                const hadToken = !!localStorage.getItem('app_password');
                 localStorage.removeItem('app_password');
-                window.location.reload();
+                
+                // Do not reload if the failure was on the login check (/health)
+                if (error.config && error.config.url === '/health') {
+                    // Just let the Promise reject so LoginScreen can show the error
+                } else if (hadToken) {
+                    window.location.reload();
+                }
             }
         }
         return Promise.reject(error);
