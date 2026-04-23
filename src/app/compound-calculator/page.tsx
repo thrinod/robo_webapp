@@ -29,30 +29,47 @@ export default function CompoundCalculatorPage() {
     const r = (rate * ratePeriod) / 100;
     const n = frequency;
     const totalYears = years + months / 12;
-    
-    // Calculate year by year for graph
-    for (let t = 0; t <= Math.floor(totalYears); t++) {
-      const amountForYear = principal * Math.pow(1 + r / n, n * t);
-      const interestForYear = Math.max(0, amountForYear - principal);
-      
+    const totalPeriods = Math.floor(totalYears * n);
+
+    let prevAmount = principal;
+    let totalAccruedInterest = 0;
+
+    // Period 0 (Initial)
+    chartData.push({
+      periodLabel: "0",
+      earnedThisPeriod: 0,
+      interest: 0,
+      amount: principal,
+      principal: principal
+    });
+
+    for (let p = 1; p <= totalPeriods; p++) {
+      const amountForPeriod = principal * Math.pow(1 + r / n, p);
+      const earnedThisPeriod = amountForPeriod - prevAmount;
+      totalAccruedInterest += earnedThisPeriod;
+
       chartData.push({
-        year: `Year ${t}`,
-        amount: Math.round(amountForYear),
-        principal: principal,
-        interest: Math.round(interestForYear),
+        periodLabel: `${p}`,
+        earnedThisPeriod: earnedThisPeriod,
+        interest: totalAccruedInterest,
+        amount: Math.round(amountForPeriod * 100) / 100,
+        principal: principal
       });
+      prevAmount = amountForPeriod;
     }
 
-    // Add trailing edge if it falls on a fraction of a year
-    if (totalYears > Math.floor(totalYears)) {
-      const amountForYear = principal * Math.pow(1 + r / n, n * totalYears);
-      const interestForYear = Math.max(0, amountForYear - principal);
+    // Add trailing edge if fraction
+    if (totalYears * n > totalPeriods) {
+      const amountForPeriod = principal * Math.pow(1 + r / n, totalYears * n);
+      const earnedThisPeriod = amountForPeriod - prevAmount;
+      totalAccruedInterest += earnedThisPeriod;
       
       chartData.push({
-        year: `Yr ${years}, ${months}mo`,
-        amount: Math.round(amountForYear),
-        principal: principal,
-        interest: Math.round(interestForYear),
+        periodLabel: `${years}Y ${months}M`,
+        earnedThisPeriod: earnedThisPeriod,
+        interest: totalAccruedInterest,
+        amount: Math.round(amountForPeriod * 100) / 100,
+        principal: principal
       });
     }
 
@@ -74,7 +91,7 @@ export default function CompoundCalculatorPage() {
   ];
 
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
   };
 
   const COLORS = ['#3b82f6', '#10b981']; // blue-500, emerald-500
@@ -82,7 +99,7 @@ export default function CompoundCalculatorPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8 transition-colors duration-200">
       <div className="max-w-7xl mx-auto space-y-6">
-        
+
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
@@ -95,14 +112,14 @@ export default function CompoundCalculatorPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
+
           {/* Input Panel */}
           <div className="lg:col-span-1 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
             <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-white flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-green-500" />
               Investment Details
             </h2>
-            
+
             <div className="space-y-5">
               {/* Principal Input */}
               <div>
@@ -211,7 +228,7 @@ export default function CompoundCalculatorPage() {
 
           {/* Results & Visuals */}
           <div className="lg:col-span-2 space-y-6">
-            
+
             {/* Top Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center">
@@ -220,10 +237,10 @@ export default function CompoundCalculatorPage() {
                   {formatCurrency(principal)}
                 </p>
               </div>
-              
+
               <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center">
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1 flex items-center justify-between">
-                  Compounded Value 
+                  Compounded Value
                   <span className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded-full font-bold">
                     +{formatCurrency(totalInterest)}
                   </span>
@@ -246,7 +263,7 @@ export default function CompoundCalculatorPage() {
 
             {/* Graphs Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+
               {/* Area Chart */}
               <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Growth Over Time</h3>
@@ -258,50 +275,50 @@ export default function CompoundCalculatorPage() {
                     >
                       <defs>
                         <linearGradient id="colorPrincipal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="colorInterest" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.2} />
-                      <XAxis 
-                        dataKey="year" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{fill: '#6b7280', fontSize: 12}} 
+                      <XAxis
+                        dataKey="periodLabel"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6b7280', fontSize: 12 }}
                         tickMargin={10}
                       />
-                      <YAxis 
-                        tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`} 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{fill: '#6b7280', fontSize: 12}}
+                      <YAxis
+                        tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6b7280', fontSize: 12 }}
                         width={60}
                       />
-                      <RechartsTooltip 
+                      <RechartsTooltip
                         formatter={(value: number) => formatCurrency(value)}
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                         itemStyle={{ fontSize: '14px', fontWeight: 500 }}
                       />
                       <Legend verticalAlign="top" height={36} iconType="circle" />
-                      <Area 
-                        type="monotone" 
-                        dataKey="principal" 
-                        name="Principal" 
-                        stackId="1" 
-                        stroke="#3b82f6" 
-                        fill="url(#colorPrincipal)" 
+                      <Area
+                        type="monotone"
+                        dataKey="principal"
+                        name="Principal"
+                        stackId="1"
+                        stroke="#3b82f6"
+                        fill="url(#colorPrincipal)"
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="interest" 
-                        name="Interest" 
-                        stackId="1" 
-                        stroke="#10b981" 
-                        fill="url(#colorInterest)" 
+                      <Area
+                        type="monotone"
+                        dataKey="interest"
+                        name="Accrued Interest"
+                        stackId="1"
+                        stroke="#10b981"
+                        fill="url(#colorInterest)"
                       />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -328,14 +345,14 @@ export default function CompoundCalculatorPage() {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <RechartsTooltip 
+                      <RechartsTooltip
                         formatter={(value: number) => formatCurrency(value)}
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                
+
                 {/* Custom Legend for Pie */}
                 <div className="w-full mt-4 space-y-2">
                   {pieData.map((entry, index) => (
@@ -350,8 +367,48 @@ export default function CompoundCalculatorPage() {
                     </div>
                   ))}
                 </div>
-                
+
               </div>
+            </div>
+
+            {/* Dynamic Interval Table Section */}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                  {frequency === 1 ? "Yearly Breakdown" : frequency === 12 ? "Monthly Breakdown" : frequency === 4 ? "Quarterly Breakdown" : frequency === 365 ? "Daily Breakdown" : frequency === 52 ? "Weekly Breakdown" : "Interval Breakdown"}
+                </h3>
+                <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    <table className="w-full text-left text-sm text-gray-600 dark:text-gray-400">
+                        <thead className="text-xs uppercase bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 sticky top-0 z-10">
+                            <tr>
+                                <th className="px-4 py-3 rounded-tl-lg">
+                                  {frequency === 1 ? "Year" : frequency === 12 ? "Month" : frequency === 4 ? "Quarter" : frequency === 365 ? "Day" : frequency === 52 ? "Week" : "Period"}
+                                </th>
+                                <th className="px-4 py-3 text-right">Interest</th>
+                                <th className="px-4 py-3 text-right">Accrued Interest</th>
+                                <th className="px-4 py-3 text-right rounded-tr-lg">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {chartData.map((row, idx) => {
+                                const isLastRow = idx === chartData.length - 1;
+                                return (
+                                    <tr key={idx} className={`border-b dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${isLastRow ? 'bg-gray-50 dark:bg-gray-700/30' : ''}`}>
+                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{row.periodLabel}</td>
+                                        <td className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">
+                                            {row.earnedThisPeriod === 0 ? "–" : `+${formatCurrency(row.earnedThisPeriod)}`}
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-medium text-emerald-600 dark:text-emerald-400">
+                                            {row.interest === 0 ? "–" : `+${formatCurrency(row.interest)}`}
+                                        </td>
+                                        <td className={`px-4 py-3 text-right text-gray-900 dark:text-white ${isLastRow ? 'font-bold text-lg' : 'font-medium'}`}>
+                                            {formatCurrency(row.amount)}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
           </div>
