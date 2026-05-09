@@ -472,3 +472,169 @@ export const getScannerData = async (instrument_keys: string[] = [], interval = 
         return [];
     }
 };
+
+export const runBacktest = async (payload: any) => {
+    try {
+        const response = await api.post('/backtest/run', payload);
+        return response.data;
+    } catch (error) {
+        console.error("Backtest Error:", error);
+        return { status: "error", message: "Failed to run backtest" };
+    }
+};
+
+export const deployStrategy = async (payload: any) => {
+    try {
+        const response = await api.post('/deploy/strategy', payload);
+        return response.data;
+    } catch (error) {
+        console.error('Deployment Error:', error);
+        return { status: 'error', message: 'Failed to deploy strategy' };
+    }
+};
+
+export const detectTelegramChat = async (token: string) => {
+    try {
+        const response = await api.post('/settings/telegram/detect', { bot_token: token });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const getMiraeSettings = async () => {
+    try {
+        const response = await api.get('/settings/mirae');
+        return response.data;
+    } catch (error) {
+        return { user_id: '', password: '', api_key: '', enabled: false };
+    }
+};
+
+export const saveMiraeSettings = async (settings: any) => {
+    try {
+        const response = await api.post('/settings/mirae', settings);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const getMiraePositions = async () => {
+    try {
+        const response = await api.get('/mirae/positions');
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const getMiraeFunds = async () => {
+    try {
+        const response = await api.get('/mirae/funds');
+        return response.data;
+    } catch (error) {
+        console.error('Mirae Funds Error', error);
+        return null;
+    }
+};
+
+export const getGeneralSettings = async () => {
+    try {
+        const response = await api.get('/settings/general');
+        return response.data;
+    } catch (error) {
+        return { enforce_market_hours: false };
+    }
+};
+
+export const saveGeneralSettings = async (settings: any) => {
+    try {
+        const response = await api.post('/settings/general', settings);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const listDeployments = async () => {
+    try {
+        const response = await api.get('/deploy/list');
+        return response.data.data || [];
+    } catch (error) {
+        return [];
+    }
+};
+
+export const stopDeployment = async (id: string) => {
+    try {
+        const response = await api.post(`/deploy/stop/${id}`);
+        return response.data;
+    } catch (error) {
+        return { status: 'error' };
+    }
+};
+
+export const startDeployment = async (id: string) => {
+    try {
+        const response = await api.post(`/deploy/start/${id}`);
+        return response.data;
+    } catch (error) {
+        return { status: 'error' };
+    }
+};
+
+export const deleteDeployment = async (id: string) => {
+    try {
+        const response = await api.delete(`/deploy/delete/${id}`);
+        return response.data;
+    } catch (error) {
+        return { status: 'error' };
+    }
+};
+
+export const testDeployTrigger = async (id: string) => {
+    try {
+        const response = await api.post(`/deploy/test/${id}`);
+        return response.data;
+    } catch (error) {
+        return { status: 'error' };
+    }
+};
+
+export const getDeploymentLogs = async (id: string) => {
+    try {
+        const response = await api.get(`/deploy/logs/${id}`);
+        return response.data.data || [];
+    } catch (error) {
+        return [];
+    }
+};
+
+export const getTelegramSettings = async () => {
+    try {
+        const response = await api.get('/settings/telegram');
+        return response.data;
+    } catch (error) {
+        return { bot_token: '', chat_id: '', enabled: false };
+    }
+};
+
+export const saveTelegramSettings = async (settings: any) => {
+    try {
+        const response = await api.post('/settings/telegram', settings);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const testTelegramSettings = async (settings: any) => {
+    try {
+        const response = await api.post('/settings/telegram/test', settings);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+

@@ -2,24 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getUpstoxStatus, getAuthUrl, setManualToken } from "@/services/api";
-import { AlertCircle, CheckCircle, ExternalLink, Key } from "lucide-react";
-import { Button, TextField, Divider, Collapse, IconButton } from "@mui/material";
+import { getUpstoxStatus } from "@/services/api";
+import { CheckCircle, ExternalLink, Key, Sparkles, Activity } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
   const [status, setStatus] = useState<string>("Loading...");
-  const [loading, setLoading] = useState(true);
-
-  // Manual Token State
-  const [showManual, setShowManual] = useState(false);
-  const [tokenInput, setTokenInput] = useState("");
-  const [algoNameInput, setAlgoNameInput] = useState("");
-  const [tokenLoading, setTokenLoading] = useState(false);
 
   useEffect(() => {
     fetchStatus();
-    // Poll every 5s
     const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -31,145 +22,76 @@ export default function Home() {
     } else {
       setStatus("Disconnected");
     }
-    setLoading(false);
-  };
-
-  const handleLogin = async () => {
-    const url = await getAuthUrl();
-    if (url) {
-      window.location.href = url;
-    }
-    if (!url) {
-      console.error("Failed to get login URL");
-      return;
-    }
-  };
-
-  const handleManualToken = async () => {
-    if (!tokenInput) return;
-    setTokenLoading(true);
-    const res = await setManualToken(tokenInput, algoNameInput);
-    if (res.status === "success") {
-      console.log("Token Connected!");
-      // Show success briefly before redirecting
-      setTokenInput("");
-      setShowManual(false);
-      router.push("/option-chain");
-    } else {
-      console.error("Token Error:", res.message || "Invalid Token");
-      alert(res.message || "Invalid Token. Please check your credentials.");
-    }
-    setTokenLoading(false);
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-8">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">RoboTrader Dashboard</h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400">Advanced Nifty/BankNifty Algo Trading System</p>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-12 p-4">
+      <div className="text-center space-y-4">
+        <div className="inline-flex items-center justify-center p-3 bg-indigo-500/10 rounded-2xl mb-4">
+          <Sparkles className="w-8 h-8 text-indigo-500" />
+        </div>
+        <h1 className="text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
+          RoboTrader <span className="text-indigo-600">Pro</span>
+        </h1>
+        <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+          Your command center for high-performance algorithmic trading. 
+          Monitor positions, analyze option chains, and automate your strategy with precision.
+        </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-8 w-full max-w-md border border-gray-200 dark:border-gray-700">
-        <h2 className="text-xl font-semibold mb-6 flex items-center justify-center text-gray-800 dark:text-gray-200">
-          System Status
-        </h2>
-
-        <div className="flex items-center justify-between mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded">
-          <span className="text-gray-700 dark:text-gray-300 font-medium">Upstox API</span>
-          <div className="flex items-center">
-            {status === "Connected" ? (
-              <>
-                <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                <span className="text-green-600 font-bold">Connected</span>
-              </>
-            ) : (
-              <>
-                <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-                <span className="text-red-600 font-bold">{status}</span>
-              </>
-            )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-7xl">
+        <div 
+          onClick={() => router.push('/option-chain')}
+          className="group p-8 bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-xl hover:border-indigo-500/50 transition-all cursor-pointer"
+        >
+          <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <ExternalLink className="w-6 h-6 text-indigo-500" />
           </div>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Option Chain</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Analyze Greeks and execute multi-leg strategies in real-time.</p>
         </div>
 
-        {!loading && (
-          <div className="space-y-4">
-            {/* Login Button - Only if disconnected */}
-            {status !== "Connected" && (
-              <Button
-                variant="contained"
-                color="primary"
-                fullWidth
-                size="large"
-                startIcon={<ExternalLink size={18} />}
-                onClick={handleLogin}
-                className="bg-blue-600 hover:bg-blue-700 normal-case mb-4"
-              >
-                Login with Upstox
-              </Button>
-            )}
-
-            {/* Divider */}
-            {status !== "Connected" && (
-              <div className="relative flex py-2 items-center">
-                <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
-                <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-xs uppercase">Or provide token</span>
-                <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
-              </div>
-            )}
-
-            {/* Manual Token Entry - Always Available (Collapsible) */}
-            <Button
-              variant="text"
-              size="small"
-              onClick={() => setShowManual(!showManual)}
-              className="w-full text-gray-500 dark:text-gray-400"
-            >
-              {showManual ? "Hide Manual Entry" : (status === "Connected" ? "Update Access Token" : "Enter Access Token Manually")}
-            </Button>
-
-            <Collapse in={showManual}>
-              <div className="space-y-2 bg-gray-50 dark:bg-gray-700 p-3 rounded border border-gray-200 dark:border-gray-600">
-                <TextField
-                  label="Access Token"
-                  size="small"
-                  fullWidth
-                  type="password"
-                  value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
-                  placeholder="eyJhbGciOi..."
-                  InputLabelProps={{ className: "dark:text-gray-300" }}
-                  InputProps={{ className: "dark:text-white" }}
-                />
-                <TextField
-                  label="Algo Name (Optional)"
-                  size="small"
-                  fullWidth
-                  value={algoNameInput}
-                  onChange={(e) => setAlgoNameInput(e.target.value)}
-                  placeholder="e.g. MyAlgo1"
-                  InputLabelProps={{ className: "dark:text-gray-300" }}
-                  InputProps={{ className: "dark:text-white" }}
-                />
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  onClick={handleManualToken}
-                  disabled={tokenLoading}
-                  startIcon={<Key size={16} />}
-                >
-                  {tokenLoading ? "Verifying..." : "Set Token"}
-                </Button>
-              </div>
-            </Collapse>
+        <div 
+          onClick={() => router.push('/positions')}
+          className="group p-8 bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-xl hover:border-indigo-500/50 transition-all cursor-pointer"
+        >
+          <div className="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <CheckCircle className="w-6 h-6 text-green-500" />
           </div>
-        )}
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Live Positions</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Monitor your P&L and automate exits with precision SL/Targets.</p>
+        </div>
 
-        {status === "Connected" && !showManual && (
-          <div className="text-center text-sm text-gray-500 mt-4">
-            System is ready for trading.
+        <div 
+          onClick={() => router.push('/mock-positions')}
+          className="group p-8 bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-xl hover:border-indigo-500/50 transition-all cursor-pointer"
+        >
+          <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Activity className="w-6 h-6 text-blue-500" />
           </div>
-        )}
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Mock Trades</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Track simulated positions and view historical performance.</p>
+        </div>
+
+        <div 
+          onClick={() => router.push('/settings')}
+          className="group p-8 bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-xl hover:border-indigo-500/50 transition-all cursor-pointer"
+        >
+          <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Key className="w-6 h-6 text-amber-500" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">API Settings</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Manage Upstox, Mirae Asset, and Telegram integrations.</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700">
+        <div className={`w-2 h-2 rounded-full ${status === 'Connected' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          Upstox Status: {status}
+        </span>
       </div>
     </div>
   );
 }
+

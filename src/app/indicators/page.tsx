@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { getExpiryDates, getOptionChain, getIntradayHistory } from "@/services/api";
+import { getExpiryDates, getOptionChain, getIntradayHistory, getScannerData } from "@/services/api";
 import {
     Button, Select, MenuItem, FormControl, InputLabel,
     Switch, FormControlLabel, Typography, Paper, TextField
@@ -720,7 +720,11 @@ export default function IndicatorsPage() {
     const [loading, setLoading] = useState(false);
     const [autoRefresh, setAutoRefresh] = useState(false);
     const [refreshSeconds, setRefreshSeconds] = useState(5);
-    const [lastFetched, setLastFetched] = useState<string>("");
+    const [lastFetched, setLastFetched] = useState<string | null>(null);
+
+    // Predictor State
+    const [isPredicting, setIsPredicting] = useState(false);
+    const [predictionData, setPredictionData] = useState<any>(null);
 
     const [spot, setSpot] = useState(0);
     const [totals, setTotals] = useState({ ce: 0, pe: 0 });
@@ -829,6 +833,163 @@ export default function IndicatorsPage() {
         if (!silent) setLoading(false);
     }, [index, expiry]);
 
+    const runPredictor = async () => {
+        setIsPredicting(true);
+        setPredictionData(null);
+        try {
+            // 1. Get Option Chain
+            const chainRaw = await getOptionChain(index, expiry);
+            const spotPrice = chainRaw.spot_price;
+            
+            const strikes: any = {};
+            chainRaw.data.forEach((item: any) => {
+                if (!strikes[item.strike_price]) strikes[item.strike_price] = { strike: item.strike_price };
+                if (item.instrument_type === 'CE') strikes[item.strike_price].ce = item;
+                if (item.instrument_type === 'PE') strikes[item.strike_price].pe = item;
+            });
+            const sortedStrikes = Object.values(strikes)
+                .filter((s: any) => s.ce && s.pe)
+                .sort((a: any, b: any) => a.strike - b.strike);
+                
+            const atmIdx = findNearestAtmIdx(sortedStrikes, spotPrice);
+            if (atmIdx === -1) {
+                 setIsPredicting(false);
+                 return;
+            }
+            
+            // Get 5 strikes: 2 ITM, 1 ATM, 2 OTM
+            const targetStrikes = sortedStrikes.slice(Math.max(0, atmIdx - 2), Math.min(sortedStrikes.length, atmIdx + 3));
+            
+            const keys: string[] = [];
+            targetStrikes.forEach((s: any) => {
+                if (s.ce?.instrument_key) keys.push(s.ce.instrument_key);
+                if (s.pe?.instrument_key) keys.push(s.pe.instrument_key);
+            });
+            
+            // 2. Fetch 5min and 15min data
+            const [data5m, data15m] = await Promise.all([
+                getScannerData(keys, "5minute", "intraday", true),
+                getScannerData(keys, "15minute", "intraday", true)
+            ]);
+            
+            const map5m: Record<string, any> = {};
+            const map15m: Record<string, any> = {};
+            data5m.forEach((d: any) => { map5m[d.instrument_key] = d; });
+            data15m.forEach((d: any) => { map15m[d.instrument_key] = d; });
+            
+            const analyzedStrikes = targetStrikes.map((s: any) => {
+                const ceKey = s.ce?.instrument_key;
+                const peKey = s.pe?.instrument_key;
+                return {
+                    strike: s.strike,
+                    isAtm: s.strike === sortedStrikes[atmIdx].strike,
+                    ce: {
+                        ltp: s.ce?.last_price,
+                        tf5: map5m[ceKey]?.indicators || {},
+                        tf15: map15m[ceKey]?.indicators || {},
+                        tf15_series: map15m[ceKey]?.indicators_series || {},
+                        tf15_candles: map15m[ceKey]?.candles || []
+                    },
+                    pe: {
+                        ltp: s.pe?.last_price,
+                        tf5: map5m[peKey]?.indicators || {},
+                        tf15: map15m[peKey]?.indicators || {},
+                        tf15_series: map15m[peKey]?.indicators_series || {},
+                        tf15_candles: map15m[peKey]?.candles || []
+                    }
+                }
+            });
+            
+            // 3. Rules Engine
+            const rules: any[] = [];
+            let buyScore = 0;
+            let sellScore = 0;
+            
+            const atmStrike = analyzedStrikes.find((s: any) => s.isAtm);
+            
+            // --- ADD YOUR RULES HERE ONE BY ONE ---
+            
+            // Custom Strategy Function (BB + Stoch + MACD)
+            const evaluateCustomStrategy = (candles: any[], series: any) => {
+                if (!candles || candles.length < 2 || !series) return { signal: "NEUTRAL", reason: "Insufficient Data" };
+                
+                const prevCandle = candles[candles.length - 2];
+                const prevBbl = (series.bb_lower && series.bb_lower.length > 1) ? series.bb_lower[series.bb_lower.length - 2] : 0;
+                
+                const stochK = series.stoch_k || [];
+                const currStochK = stochK.length > 0 ? stochK[stochK.length - 1] : 0;
+                const prevStochK = stochK.length > 1 ? stochK[stochK.length - 2] : 0;
+                
+                const stochD = series.stoch_d || [];
+                const currStochD = stochD.length > 0 ? stochD[stochD.length - 1] : 0;
+                const prevStochD = stochD.length > 1 ? stochD[stochD.length - 2] : 0;
+                
+                const macdHist = series.macd_hist || [];
+                const currMacdHist = macdHist.length > 0 ? macdHist[macdHist.length - 1] : 0;
+                const prevMacdHist = macdHist.length > 1 ? macdHist[macdHist.length - 2] : 0;
+                
+                // Condition 1: Price touched/dropped below Lower BB recently
+                const cond1 = prevCandle.low <= prevBbl;
+                
+                // Condition 2: Stochastic was deeply Oversold
+                const cond2 = prevStochK < 20;
+                
+                // Condition 3: Stochastic Bullish Crossover NOW
+                const cond3 = (prevStochK <= prevStochD) && (currStochK > currStochD);
+                
+                // Condition 4: MACD Momentum Shifting Upwards
+                const cond4 = currMacdHist > prevMacdHist;
+                
+                if (cond1 && cond2 && cond3 && cond4) {
+                    return { signal: "BUY", reason: "All met: BB Touch + Stoch<20 + Cross + MACD Up" };
+                }
+                
+                return { 
+                    signal: "NEUTRAL", 
+                    reason: `C1(BB):${cond1} C2(Stoch):${cond2} C3(Cross):${cond3} C4(MACD):${cond4}` 
+                };
+            };
+
+            if (atmStrike) {
+                // Rule 1: Custom Strategy on ATM CE (15m)
+                const ceStrat = evaluateCustomStrategy(atmStrike.ce.tf15_candles, atmStrike.ce.tf15_series);
+                if (ceStrat.signal === "BUY") {
+                    rules.push({ name: "ATM CE Strategy (15m)", condition: ceStrat.reason, signal: "BUY" });
+                    buyScore++;
+                } else {
+                    rules.push({ name: "ATM CE Strategy (15m)", condition: ceStrat.reason, signal: "NEUTRAL" });
+                }
+
+                // Rule 2: Custom Strategy on ATM PE (15m)
+                // A BUY on PE means market goes down, so we output a SELL signal for the overall market
+                const peStrat = evaluateCustomStrategy(atmStrike.pe.tf15_candles, atmStrike.pe.tf15_series);
+                if (peStrat.signal === "BUY") {
+                    rules.push({ name: "ATM PE Strategy (15m)", condition: peStrat.reason, signal: "SELL" });
+                    sellScore++;
+                } else {
+                    rules.push({ name: "ATM PE Strategy (15m)", condition: peStrat.reason, signal: "NEUTRAL" });
+                }
+            }
+            
+            let finalSignal = "NEUTRAL";
+            if (buyScore > sellScore) finalSignal = "BUY";
+            else if (sellScore > buyScore) finalSignal = "SELL";
+            
+            setPredictionData({
+                strikes: analyzedStrikes,
+                rules,
+                finalSignal,
+                buyScore,
+                sellScore,
+                spotPrice
+            });
+            
+        } catch (e) {
+            console.error("Predictor error:", e);
+        }
+        setIsPredicting(false);
+    };
+
     useEffect(() => {
         let interval: any;
         if (autoRefresh && expiry) {
@@ -870,6 +1031,10 @@ export default function IndicatorsPage() {
                         startIcon={<RefreshCw className={clsx("w-4 h-4", loading && "animate-spin")} />}>
                         {loading ? "Loading..." : "Fetch"}
                     </Button>
+                    <Button variant="contained" color="secondary" size="small" onClick={runPredictor} disabled={isPredicting || !expiry}
+                        startIcon={<TrendingUp className={clsx("w-4 h-4", isPredicting && "animate-spin")} />}>
+                        Predict Buy/Sell
+                    </Button>
                     <FormControlLabel
                         control={<Switch size="small" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />}
                         label={<span className="text-sm dark:text-gray-200">Auto</span>}
@@ -888,6 +1053,83 @@ export default function IndicatorsPage() {
                     {lastFetched && <span>Last: {lastFetched}</span>}
                 </div>
             </Paper>
+
+            {/* Rules Based Predictor Section */}
+            {predictionData && (
+                <Paper className="p-6 border-2 border-indigo-200 dark:border-indigo-800 shadow-lg bg-gradient-to-br from-indigo-50/50 to-white dark:from-gray-800 dark:to-gray-900 overflow-hidden relative">
+                    <div className="absolute top-0 right-0 p-4">
+                        <div className={clsx(
+                            "px-4 py-2 rounded-full font-black text-xl shadow-lg border-2",
+                            predictionData.finalSignal === "BUY" ? "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/50 dark:text-emerald-400" :
+                            predictionData.finalSignal === "SELL" ? "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-900/50 dark:text-rose-400" :
+                            "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/50 dark:text-amber-400"
+                        )}>
+                            PREDICTION: {predictionData.finalSignal}
+                        </div>
+                    </div>
+                    
+                    <Typography variant="h5" className="font-black text-indigo-900 dark:text-indigo-300 mb-2">Rules Engine Predictor</Typography>
+                    <Typography variant="body2" className="text-gray-600 dark:text-gray-400 mb-6">Evaluated across 5 CE & 5 PE ATM strikes (Spot: {predictionData.spotPrice.toFixed(2)})</Typography>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Rules Evaluated */}
+                        <div>
+                            <Typography variant="subtitle1" className="font-bold border-b pb-2 mb-3 dark:border-gray-700 dark:text-gray-200">Rules Evaluated</Typography>
+                            <div className="space-y-2">
+                                {predictionData.rules.map((rule: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between items-center p-3 bg-white dark:bg-gray-800 rounded border dark:border-gray-700">
+                                        <div>
+                                            <div className="font-bold text-sm dark:text-gray-300">{rule.name}</div>
+                                            <div className="text-xs text-gray-500">{rule.condition}</div>
+                                        </div>
+                                        <div className={clsx(
+                                            "font-black text-xs px-2 py-1 rounded",
+                                            rule.signal === "BUY" ? "bg-emerald-100 text-emerald-700" :
+                                            rule.signal === "SELL" ? "bg-rose-100 text-rose-700" :
+                                            "bg-gray-100 text-gray-700"
+                                        )}>
+                                            {rule.signal}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Extracted Data Summary */}
+                        <div>
+                            <Typography variant="subtitle1" className="font-bold border-b pb-2 mb-3 dark:border-gray-700 dark:text-gray-200">5 CE / PE Intraday Summary</Typography>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-xs text-left">
+                                    <thead className="text-gray-500 border-b dark:border-gray-700">
+                                        <tr>
+                                            <th className="pb-2">Strike</th>
+                                            <th className="pb-2">CE (LTP)</th>
+                                            <th className="pb-2">CE RSI (5m/15m)</th>
+                                            <th className="pb-2">PE (LTP)</th>
+                                            <th className="pb-2">PE RSI (5m/15m)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y dark:divide-gray-700">
+                                        {predictionData.strikes.map((s: any) => (
+                                            <tr key={s.strike} className={s.isAtm ? "bg-blue-50 dark:bg-blue-900/20 font-bold" : ""}>
+                                                <td className="py-2 dark:text-gray-300">{s.strike} {s.isAtm ? "(ATM)" : ""}</td>
+                                                <td className="py-2 text-blue-600 dark:text-blue-400">{s.ce.ltp}</td>
+                                                <td className="py-2 text-gray-600 dark:text-gray-400">
+                                                    {s.ce.tf5?.rsi?.toFixed(1) || "-"} / {s.ce.tf15?.rsi?.toFixed(1) || "-"}
+                                                </td>
+                                                <td className="py-2 text-purple-600 dark:text-purple-400">{s.pe.ltp}</td>
+                                                <td className="py-2 text-gray-600 dark:text-gray-400">
+                                                    {s.pe.tf5?.rsi?.toFixed(1) || "-"} / {s.pe.tf15?.rsi?.toFixed(1) || "-"}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </Paper>
+            )}
 
             {/* Overall Signal - Hero Card */}
             {indicators.length > 0 && (
