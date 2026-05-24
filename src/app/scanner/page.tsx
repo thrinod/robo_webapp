@@ -7,7 +7,7 @@ import {
     FormControl, InputLabel, Select as MuiSelect, MenuItem, Box, LinearProgress,
     TableSortLabel
 } from "@mui/material";
-import { getScannerInstruments, getScannerData, getUpstoxStatus, populateScannerInstruments, getScannerResults, populateScannerFno, fetchFnoList, fetchMasterInstruments } from "@/services/api";
+import { getScannerInstruments, getScannerData, getUpstoxStatus, populateScannerInstruments, getScannerResults, populateScannerFno, fetchFnoList, fetchMasterInstruments, populateScannerAll } from "@/services/api";
 import { Activity, Search, RefreshCw, StopCircle, Database, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -18,6 +18,31 @@ interface ScannerData {
 
 type SortKey = 'name' | 'ltp' | 'change' | 'd1' | 'd2' | 'd3' | 'd4' | 'd5' | 'change_7d' | 'change_30d' | 'rsi' | 'adx' | 'stoch_k' | 'stoch_d' | 'dmp' | 'dmn' | 'macd_hist' | 'bb_upper' | 'bb_middle' | 'bb_lower' | 'sma_50' | 'sma_200' | 's1' | 'r1' | 's2' | 'r2' | 'box_formation';
 
+interface FilterRule {
+    id: string;
+    column: SortKey;
+    operator: '>' | '<' | '>=' | '<=' | '==' | '!=';
+    value: number;
+}
+
+const COLUMN_LABELS: Record<SortKey, string> = {
+    name: 'Instrument',
+    ltp: 'LTP',
+    change: 'Change %',
+    d1: 'D-1 %', d2: 'D-2 %', d3: 'D-3 %', d4: 'D-4 %', d5: 'D-5 %',
+    change_7d: '7D Change %',
+    change_30d: '30D Change %',
+    rsi: 'RSI',
+    adx: 'ADX',
+    stoch_k: 'Stoch K', stoch_d: 'Stoch D',
+    dmp: '+DI', dmn: '-DI',
+    macd_hist: 'MACD Hist',
+    bb_upper: 'BB Upper', bb_middle: 'BB Middle', bb_lower: 'BB Lower',
+    sma_50: 'SMA 50', sma_200: 'SMA 200',
+    s1: 'S1 Pivot', r1: 'R1 Pivot', s2: 'S2 Pivot', r2: 'R2 Pivot',
+    box_formation: 'Box Containment'
+};
+
 export default function ScannerPage() {
     // Data State
     const [instruments, setInstruments] = useState<any[]>([]);
@@ -26,6 +51,7 @@ export default function ScannerPage() {
     // UI State
     const [searchTerm, setSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingDb, setIsLoadingDb] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [interval, setInterval] = useState("day");
     const [dataSource, setDataSource] = useState("history"); // combined, history, intraday
@@ -42,20 +68,44 @@ export default function ScannerPage() {
     const processRef = useRef(false);
     const [autoRefresh, setAutoRefresh] = useState(false);
     const [refreshInterval, setRefreshInterval] = useState(5); // Minutes
+    const [filters, setFilters] = useState<FilterRule[]>([]);
+    const [newFilter, setNewFilter] = useState<Omit<FilterRule, 'id'>>({
+        column: 'rsi',
+        operator: '<',
+        value: 30
+    });
     const autoRefreshRef = useRef<any>(null);
+    const topScrollRef = useRef<HTMLDivElement>(null);
+    const tableContainerRef = useRef<HTMLDivElement>(null);
+    const tableRef = useRef<HTMLTableElement>(null);
+    const [tableWidth, setTableWidth] = useState(0);
+    const [displayLimit, setDisplayLimit] = useState(100);
+
 
     // Initial Load
     useEffect(() => {
-        // loadInstruments();
+        loadInstruments();
     }, []);
 
+    // Sync scrollbars
+    const handleTopScroll = () => {
+        if (topScrollRef.current && tableContainerRef.current) {
+            tableContainerRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+        }
+    };
 
+    const handleTableScroll = () => {
+        if (topScrollRef.current && tableContainerRef.current) {
+            topScrollRef.current.scrollLeft = tableContainerRef.current.scrollLeft;
+        }
+    };
 
     const loadInstruments = async () => {
         setIsLoading(true);
         try {
             const data = await getScannerInstruments();
-            setInstruments(data);
+            console.log("Loaded instruments:", data?.length);
+            setInstruments(data || []);
 
             // Load Saved Results
             const savedResults = await getScannerResults();
@@ -79,6 +129,35 @@ export default function ScannerPage() {
         }
     };
 
+    // Load only from DB (no Upstox API call)
+    const loadFromDb = async () => {
+        setIsLoadingDb(true);
+        try {
+            const savedResults = await getScannerResults();
+            if (savedResults && savedResults.length > 0) {
+                const dbData: Record<string, any> = {};
+                savedResults.forEach((item: any) => {
+                    if (item.instrument_key) {
+                        dbData[item.instrument_key] = item;
+                    }
+                });
+                setScannerData(dbData);
+                if (savedResults[0].updated_at) {
+                    setLastUpdated(new Date(savedResults[0].updated_at));
+                } else {
+                    setLastUpdated(new Date());
+                }
+                console.log(`Loaded ${savedResults.length} results from DB (no API call)`);
+            } else {
+                console.log("No saved results found in DB");
+            }
+        } catch (error) {
+            console.error("Failed to load from DB", error);
+        } finally {
+            setIsLoadingDb(false);
+        }
+    };
+
     // Sorting Handler
     const handleRequestSort = (property: SortKey) => {
         const isAsc = sortConfig.key === property && sortConfig.direction === 'asc';
@@ -86,8 +165,69 @@ export default function ScannerPage() {
     };
 
     // Derived State (Search + Sort)
-    const processedInstruments = useMemo(() => {
-        // 1. Filter
+    // Helper to get numeric/comparable value for a column
+    const getVal = (inst: any, k: SortKey) => {
+        if (k === 'name') return (inst.name || inst.trading_symbol || "").toLowerCase();
+
+        const data = scannerData[inst.instrument_key];
+        if (!data) return null;
+
+        if (k === 'ltp') return data[k] ?? null;
+
+        if (k === 'change') {
+            const change = data.change;
+            const ltp = data.ltp;
+            const prev_close = data.prev_close;
+            if (change !== undefined && ltp !== undefined) {
+                const prev = prev_close > 0 ? prev_close : (ltp - change);
+                if (prev === 0) return 0;
+                return (change / prev) * 100;
+            }
+            return null;
+        }
+
+        // Multi-day change sorting
+        if (k.startsWith('d') && k.length === 2) {
+            const idx = parseInt(k.substring(1)) - 1;
+            return data.daily_changes?.[idx]?.pct ?? null;
+        }
+        if (k === 'change_7d' || k === 'change_30d') {
+            return data[k] ?? null;
+        }
+
+        const inds = data.indicators || {};
+        const pp = inds.pivot_points || {};
+
+        // Pivot Sorting: Sort by Diff % (LTP - Level) / Level
+        if (['s1', 'r1', 's2', 'r2', 'sma_50', 'sma_200'].includes(k)) {
+            const ltp = data.ltp;
+            let level = 0;
+
+            if (['s1', 'r1', 's2', 'r2'].includes(k)) level = pp[k];
+            else level = inds[k];
+
+            if (level && ltp) {
+                return (ltp - level) / level * 100; // Return as percentage difference
+            }
+            return null;
+        }
+
+        if (k === 'box_formation') {
+            if (!inds.box_formation) return -1;
+            // Sort by breakout first, then containment
+            const b = inds.box_formation.breakout;
+            if (b === 'up') return 1000 + (inds.box_formation.containment || 0);
+            if (b === 'down') return 500 + (inds.box_formation.containment || 0);
+            if (inds.box_formation.detected) return 100 + (inds.box_formation.containment || 0);
+            return inds.box_formation.containment || 0;
+        }
+
+        return inds[k] ?? null;
+    };
+
+    // Derived State (Search + Sort + Filter)
+    const sortedInstruments = useMemo(() => {
+        // 1. Filter by Search Term
         let result = instruments.filter(i => {
             const term = searchTerm.toLowerCase();
             const name = (i.name || i.instrument_key || "").toLowerCase();
@@ -95,73 +235,36 @@ export default function ScannerPage() {
             return name.includes(term) || symbol.includes(term);
         });
 
-        // 2. Sort
+        // 2. Filter by Query Rules
+        if (filters.length > 0) {
+            result = result.filter(inst => {
+                return filters.every(rule => {
+                    const val = getVal(inst, rule.column);
+                    if (val === null) return false;
+
+                    switch (rule.operator) {
+                        case '>': return val > rule.value;
+                        case '<': return val < rule.value;
+                        case '>=': return val >= rule.value;
+                        case '<=': return val <= rule.value;
+                        case '==': return val == rule.value;
+                        case '!=': return val != rule.value;
+                        default: return true;
+                    }
+                });
+            });
+        }
+
+        // 3. Sort
         result.sort((a, b) => {
             const key = sortConfig.key;
             const dir = sortConfig.direction === 'asc' ? 1 : -1;
 
-            // Helper to get value
-            const getVal = (inst: any, k: SortKey) => {
-                if (k === 'name') return (inst.name || inst.trading_symbol || "").toLowerCase();
-
-                const data = scannerData[inst.instrument_key];
-                if (!data) return -999999999;
-
-                if (k === 'ltp') return data[k] ?? -999999;
-
-                if (k === 'change') {
-                    const change = data.change;
-                    const ltp = data.ltp;
-                    const prev_close = data.prev_close;
-                    if (change !== undefined && ltp !== undefined) {
-                        const prev = prev_close > 0 ? prev_close : (ltp - change);
-                        if (prev === 0) return 0;
-                        return (change / prev) * 100;
-                    }
-                    return -999999;
-                }
-
-                // Multi-day change sorting
-                if (k.startsWith('d') && k.length === 2) {
-                    const idx = parseInt(k.substring(1)) - 1;
-                    return data.daily_changes?.[idx]?.pct ?? -999999;
-                }
-                if (k === 'change_7d' || k === 'change_30d') {
-                    return data[k] ?? -999999;
-                }
-
-                const inds = data.indicators || {};
-                const pp = inds.pivot_points || {};
-
-                // Pivot Sorting: Sort by Diff % (LTP - Level) / Level
-                if (['s1', 'r1', 's2', 'r2', 'sma_50', 'sma_200'].includes(k)) {
-                    const ltp = data.ltp;
-                    let level = 0;
-
-                    if (['s1', 'r1', 's2', 'r2'].includes(k)) level = pp[k];
-                    else level = inds[k];
-
-                    if (level && ltp) {
-                        return (ltp - level) / level;
-                    }
-                    return -999999;
-                }
-
-                if (k === 'box_formation') {
-                    if (!inds.box_formation) return -1;
-                    // Sort by breakout first, then containment
-                    const b = inds.box_formation.breakout;
-                    if (b === 'up') return 1000 + (inds.box_formation.containment || 0);
-                    if (b === 'down') return 500 + (inds.box_formation.containment || 0);
-                    if (inds.box_formation.detected) return 100 + (inds.box_formation.containment || 0);
-                    return inds.box_formation.containment || 0;
-                }
-
-                return inds[k] ?? -999999;
-            };
-
             const valA = getVal(a, key);
             const valB = getVal(b, key);
+
+            if (valA === null) return 1;
+            if (valB === null) return -1;
 
             if (valA < valB) return -1 * dir;
             if (valA > valB) return 1 * dir;
@@ -170,14 +273,41 @@ export default function ScannerPage() {
 
         return result;
 
-    }, [instruments, searchTerm, scannerData, sortConfig]);
+    }, [instruments, scannerData, searchTerm, sortConfig, filters]);
+
+    const displayedInstruments = useMemo(() => {
+        return sortedInstruments.slice(0, displayLimit);
+    }, [sortedInstruments, displayLimit]);
+
+    // Update table width for top scrollbar
+    useEffect(() => {
+        if (tableRef.current) {
+            const updateWidth = () => {
+                if (tableRef.current) setTableWidth(tableRef.current.scrollWidth);
+            };
+            updateWidth();
+            window.addEventListener('resize', updateWidth);
+            // Also update after data loads
+            const timer = setTimeout(updateWidth, 1000);
+            return () => {
+                window.removeEventListener('resize', updateWidth);
+                clearTimeout(timer);
+            };
+        }
+    }, [sortedInstruments, scannerData]);
 
     // Populate Logic
     const handlePopulate = async () => {
+        console.log("Populating Nifty 50 instruments...");
         setIsLoading(true);
-        await populateScannerInstruments("NIFTY 50");
-        await loadInstruments();
-        setIsLoading(false);
+        try {
+            await populateScannerInstruments("NIFTY 50");
+            await loadInstruments();
+        } catch (error) {
+            console.error("Failed to populate instruments", error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handlePopulateFno = async () => {
@@ -193,6 +323,24 @@ export default function ScannerPage() {
             return false;
         }
     };
+
+    const handlePopulateAll = async () => {
+        if (!confirm("This will replace current instruments with ALL NSE Equity stocks (2000+). It may be slow to scan. Continue?")) return;
+        setIsLoading(true);
+        try {
+            const res = await populateScannerAll();
+            if (res.status === "success") {
+                await loadInstruments();
+            } else {
+                console.error("Failed to load All: " + res.message);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
 
 
 
@@ -241,7 +389,7 @@ export default function ScannerPage() {
 
     // Scan Logic
     const handleStartScan = async (batchSize = 5, force = false) => {
-        const targetList = processedInstruments; // Scan what we see (sorted order doesn't matter for scanning)
+        const targetList = sortedInstruments; // Scan what we see (sorted order doesn't matter for scanning)
         if (targetList.length === 0) return;
 
         setIsProcessing(true);
@@ -325,8 +473,21 @@ export default function ScannerPage() {
     const fmt = (n: number) => n?.toFixed(2) ?? "-";
 
     // Sortable Header Component
-    const SortHeader = ({ id, label, align = "right" }: { id: SortKey, label: string, align?: "left" | "right" | "center" }) => (
-        <TableCell align={align} className="font-bold dark:bg-gray-700 dark:text-gray-200 p-2">
+    const SortHeader = ({ id, label, align = "right", sticky = false }: { id: SortKey, label: string, align?: "left" | "right" | "center", sticky?: boolean }) => (
+        <TableCell 
+            align={align} 
+            className={`font-bold dark:bg-gray-700 dark:text-gray-200 p-2 ${sticky ? 'z-30' : ''}`}
+            sx={{
+                whiteSpace: 'nowrap',
+                ...(sticky ? {
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 40,
+                    backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#374151' : '#f9fafb', // gray-700 or gray-50
+                    boxShadow: '2px 0 5px -2px rgba(0,0,0,0.3)'
+                } : {})
+            }}
+        >
             <TableSortLabel
                 active={sortConfig.key === id}
                 direction={sortConfig.key === id ? sortConfig.direction : 'asc'}
@@ -339,12 +500,28 @@ export default function ScannerPage() {
 
     return (
         <div className="p-4 bg-gray-50 dark:bg-gray-900 min-h-screen">
+            <style jsx global>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 8px;
+                    height: 8px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #4f46e5;
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #4338ca;
+                }
+            `}</style>
             {/* Header / Toolbar */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold dark:text-gray-100">Market Scanner</h1>
                     <p className="text-xs text-gray-500">
-                        Instruments: {instruments.length} | Visible: {processedInstruments.length}
+                        Instruments: {instruments.length} | Visible: {sortedInstruments.length}
                         {lastUpdated && ` | Updated: ${lastUpdated.toLocaleTimeString()}`}
                     </p>
                 </div>
@@ -409,11 +586,20 @@ export default function ScannerPage() {
                         <Button
                             variant="outlined"
                             size="small"
-                            onClick={handlePopulateFno}
+                            onClick={handlePopulateAll}
                             disabled={isProcessing || isLoading}
                             className="dark:text-gray-300"
                         >
-                            Load FnO
+                            Load All Stocks
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={handlePopulateFno}
+                            disabled={isProcessing || isLoading}
+                            className="dark:text-gray-300 ml-2"
+                        >
+                            Load FnO Stocks
                         </Button>
                         <Button
                             variant="outlined"
@@ -447,11 +633,21 @@ export default function ScannerPage() {
                     ) : (
                         <div className="flex items-center gap-2">
                             <Button
+                                variant="outlined"
+                                color="info"
+                                startIcon={isLoadingDb ? <CircularProgress size={14} /> : <Database size={16} />}
+                                onClick={loadFromDb}
+                                disabled={isLoadingDb || instruments.length === 0}
+                            >
+                                {isLoadingDb ? 'Loading...' : 'Load from DB'}
+                            </Button>
+
+                            <Button
                                 variant="contained"
                                 color="success"
                                 startIcon={<Activity size={16} />}
                                 onClick={() => handleStartScan(5, true)}
-                                disabled={processedInstruments.length === 0}
+                                disabled={sortedInstruments.length === 0}
                             >
                                 Start Scan (Force)
                             </Button>
@@ -481,277 +677,392 @@ export default function ScannerPage() {
                 </div>
             </div>
 
+            {/* Query Builder / Filters */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm mb-6 border border-gray-100 dark:border-gray-700">
+                <div className="flex flex-wrap items-center gap-4 mb-4">
+                    <Typography variant="subtitle2" className="text-gray-600 dark:text-gray-400 font-bold">Query Builder:</Typography>
+                    
+                    <FormControl size="small" className="min-w-[150px]">
+                        <MuiSelect
+                            value={newFilter.column}
+                            onChange={(e) => setNewFilter({ ...newFilter, column: e.target.value as SortKey })}
+                        >
+                            {(Object.keys(COLUMN_LABELS) as SortKey[]).map(key => (
+                                <MenuItem key={key} value={key}>{COLUMN_LABELS[key]}</MenuItem>
+                            ))}
+                        </MuiSelect>
+                    </FormControl>
+
+                    <FormControl size="small" className="min-w-[80px]">
+                        <MuiSelect
+                            value={newFilter.operator}
+                            onChange={(e) => setNewFilter({ ...newFilter, operator: e.target.value as any })}
+                        >
+                            <MenuItem value=">">&gt;</MenuItem>
+                            <MenuItem value="<">&lt;</MenuItem>
+                            <MenuItem value=">=">&gt;=</MenuItem>
+                            <MenuItem value="<=">&lt;=</MenuItem>
+                            <MenuItem value="==">==</MenuItem>
+                            <MenuItem value="!=">!=</MenuItem>
+                        </MuiSelect>
+                    </FormControl>
+
+                    <TextField
+                        size="small"
+                        type="number"
+                        placeholder="Value"
+                        value={newFilter.value}
+                        onChange={(e) => setNewFilter({ ...newFilter, value: parseFloat(e.target.value) || 0 })}
+                        className="w-24"
+                    />
+
+                    <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<Search size={14} />}
+                        onClick={() => {
+                            setFilters([...filters, { ...newFilter, id: Date.now().toString() }]);
+                        }}
+                    >
+                        Add Rule
+                    </Button>
+
+                    {filters.length > 0 && (
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            color="error"
+                            onClick={() => setFilters([])}
+                        >
+                            Clear All
+                        </Button>
+                    )}
+                </div>
+
+                {filters.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {filters.map(filter => (
+                            <div key={filter.id} className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full text-xs flex items-center gap-2 border border-blue-100 dark:border-blue-800">
+                                <span className="font-bold">{COLUMN_LABELS[filter.column]}</span>
+                                <span>{filter.operator}</span>
+                                <span className="font-bold">{filter.value}</span>
+                                <button 
+                                    onClick={() => setFilters(filters.filter(f => f.id !== filter.id))}
+                                    className="hover:text-blue-900 dark:hover:text-blue-100 font-bold"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Top Sync Scrollbar */}
+            <div 
+                ref={topScrollRef}
+                onScroll={handleTopScroll}
+                className="overflow-x-auto h-4 mb-1 custom-scrollbar"
+                style={{ width: '100%' }}
+            >
+                <div style={{ width: `${tableWidth}px`, height: '1px' }}></div>
+            </div>
+
             {/* Table */}
-            <TableContainer component={Paper} className="shadow-md rounded-lg overflow-x-auto dark:bg-gray-800">
-                <Table size="small" stickyHeader>
-                    <TableHead>
-                        <TableRow>
-                            <SortHeader id="name" label="Instrument" align="left" />
-                            <SortHeader id="ltp" label="LTP" />
-                            <SortHeader id="change" label="Chg %" />
-                            <SortHeader id="box_formation" label="Box" align="center" />
-                            <SortHeader id="d1" label="D-1" />
-                            <SortHeader id="d2" label="D-2" />
-                            <SortHeader id="d3" label="D-3" />
-                            <SortHeader id="d4" label="D-4" />
-                            <SortHeader id="d5" label="D-5" />
-                            <SortHeader id="change_7d" label="7D" />
-                            <SortHeader id="change_30d" label="30D" />
+            <Paper className="shadow-md rounded-lg custom-scrollbar dark:bg-gray-800">
+                <TableContainer 
+                    component="div"
+                    ref={tableContainerRef}
+                    onScroll={handleTableScroll}
+                    sx={{ maxHeight: 'calc(100vh - 200px)', overflow: 'auto' }}
+                >
+                    <Table size="small" stickyHeader ref={tableRef}>
+                        <TableHead>
+                            <TableRow>
+                                <SortHeader id="name" label="Instrument" align="left" sticky={true} />
+                                <SortHeader id="ltp" label="LTP" />
+                                <SortHeader id="change" label="Chg %" />
+                                <SortHeader id="box_formation" label="Box" align="center" />
+                                <SortHeader id="d1" label="D-1" />
+                                <SortHeader id="d2" label="D-2" />
+                                <SortHeader id="d3" label="D-3" />
+                                <SortHeader id="d4" label="D-4" />
+                                <SortHeader id="d5" label="D-5" />
+                                <SortHeader id="change_7d" label="7D" />
+                                <SortHeader id="change_30d" label="30D" />
 
-                            {/* Technical Indicators */}
-                            <SortHeader id="rsi" label="RSI" />
-                            <SortHeader id="adx" label="ADX" />
-                            <SortHeader id="sma_50" label="SMA 50" />
-                            <SortHeader id="sma_200" label="SMA 200" />
-                            <SortHeader id="stoch_k" label="Stochastic" />
-                            <SortHeader id="dmp" label="DMI" />
-                            <SortHeader id="macd_hist" label="MACD" />
-                            <TableCell align="right" className="font-bold dark:bg-gray-700 dark:text-gray-200">Bollinger</TableCell>
+                                {/* Technical Indicators */}
+                                <SortHeader id="rsi" label="RSI" />
+                                <SortHeader id="adx" label="ADX" />
+                                <SortHeader id="sma_50" label="SMA 50" />
+                                <SortHeader id="sma_200" label="SMA 200" />
+                                <SortHeader id="stoch_k" label="Stochastic" />
+                                <SortHeader id="dmp" label="DMI" />
+                                <SortHeader id="macd_hist" label="MACD" />
+                                <TableCell align="right" className="font-bold dark:bg-gray-700 dark:text-gray-200">Bollinger</TableCell>
 
-                            {/* Pivot Points */}
-                            <SortHeader id="s1" label="S1" />
-                            <SortHeader id="r1" label="R1" />
-                            <SortHeader id="s2" label="S2" />
-                            <SortHeader id="r2" label="R2" />
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {processedInstruments.map((inst) => {
-                            const data = scannerData[inst.instrument_key];
-                            const indicators = data?.indicators || {};
-                            // DEBUG: Check SMA 200 value
-                            if (indicators.sma_200 === undefined || indicators.sma_200 === null) {
-                                // console.log(`Missing SMA 200 for ${inst.name}:`, indicators);
-                            }
-                            const ltp = data?.ltp || 0;
-                            const change = data?.change || 0;
-                            const prev_close = data?.prev_close || 0;
-                            const changePct = prev_close > 0 ? (change / prev_close) * 100 : (ltp ? (change / (ltp - change)) * 100 : 0);
-                            const hasData = !!data;
-                            const pp = indicators.pivot_points || {};
+                                {/* Pivot Points */}
+                                <SortHeader id="s1" label="S1" />
+                                <SortHeader id="r1" label="R1" />
+                                <SortHeader id="s2" label="S2" />
+                                <SortHeader id="r2" label="R2" />
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {displayedInstruments.map((inst) => {
+                                const data = scannerData[inst.instrument_key];
+                                const indicators = data?.indicators || {};
+                                const ltp = data?.ltp || 0;
+                                const change = data?.change || 0;
+                                const prev_close = data?.prev_close || 0;
+                                const changePct = prev_close > 0 ? (change / prev_close) * 100 : (ltp ? (change / (ltp - change)) * 100 : 0);
+                                const hasData = !!data;
+                                const pp = indicators.pivot_points || {};
 
-                            return (
-                                <TableRow key={inst.instrument_key} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                    <TableCell component="th" scope="row">
-                                        <div className="flex flex-col">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium dark:text-gray-100">{inst.name || inst.trading_symbol || inst.instrument_key}</span>
-                                                {inst.trading_symbol && (
-                                                    <a
-                                                        href={`https://www.screener.in/company/${inst.trading_symbol.replace(/-EQ$/i, '')}/`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-gray-400 hover:text-blue-500"
-                                                        title="Open in Screener.in"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        <ExternalLink size={12} />
-                                                    </a>
-                                                )}
+                                return (
+                                    <TableRow key={inst.instrument_key} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                        <TableCell 
+                                            component="th" 
+                                            scope="row"
+                                            sx={{
+                                                position: 'sticky',
+                                                left: 0,
+                                                zIndex: 20,
+                                                backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1f2937' : '#fff', // gray-800 or white
+                                                boxShadow: '2px 0 5px -2px rgba(0,0,0,0.2)'
+                                            }}
+                                        >
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium dark:text-gray-100">{inst.name || inst.trading_symbol || inst.instrument_key}</span>
+                                                    {inst.trading_symbol && (
+                                                        <a
+                                                            href={`https://www.screener.in/company/${inst.trading_symbol.replace(/-EQ$/i, '')}/`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-gray-400 hover:text-blue-500"
+                                                            title="Open in Screener.in"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <ExternalLink size={12} />
+                                                        </a>
+                                                    )}
+                                                </div>
+                                                <span className="text-[10px] text-gray-400">{inst.instrument_key.split('|')[0]}</span>
                                             </div>
-                                            <span className="text-[10px] text-gray-400">{inst.instrument_key.split('|')[0]}</span>
+                                        </TableCell>
+
+                                        <TableCell align="right" className="font-mono dark:text-gray-200">
+                                            {hasData ? fmt(ltp) : '-'}
+                                        </TableCell>
+
+                                        <TableCell align="right">
+                                            {hasData ? (
+                                                <div className={`text-xs ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {change > 0 && '+'}{fmt(change)} <br />
+                                                    ({changePct.toFixed(2)}%)
+                                                </div>
+                                            ) : '-'}
+                                        </TableCell>
+
+                                        {/* Box Formation */}
+                                        <TableCell align="center">
+                                            {hasData && indicators.box_formation ? (
+                                                <div className="flex flex-col items-center gap-1 min-w-[50px]">
+                                                    {indicators.box_formation.breakout === 'up' && (
+                                                        <span className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-0.5 rounded text-[10px] border border-emerald-200 dark:border-emerald-800">🚀 UP</span>
+                                                    )}
+                                                    {indicators.box_formation.breakout === 'down' && (
+                                                        <span className="bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 font-bold px-1.5 py-0.5 rounded text-[10px] border border-rose-200 dark:border-rose-800">📉 DOWN</span>
+                                                    )}
+                                                    {indicators.box_formation.breakout === 'none' && indicators.box_formation.detected && (
+                                                        <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-bold px-1.5 py-0.5 rounded text-[10px] border border-blue-200 dark:border-blue-800">BOX</span>
+                                                    )}
+                                                    {!indicators.box_formation.detected && indicators.box_formation.breakout === 'none' && (
+                                                        <span className="text-[10px] text-gray-400">-</span>
+                                                    )}
+                                                    {indicators.box_formation.detected && (
+                                                        <span className="text-[9px] text-gray-500 dark:text-gray-400 font-mono">{indicators.box_formation.containment}%</span>
+                                                    )}
+                                                </div>
+                                            ) : '-'}
+                                        </TableCell>
+
+                                        {/* D-1 through D-5 as separate columns */}
+                                        {[0, 1, 2, 3, 4].map((idx) => {
+                                            const dc = data?.daily_changes?.[idx];
+                                            return (
+                                                <TableCell key={idx} align="right">
+                                                    {hasData && dc?.pct != null ? (
+                                                        <div className="flex flex-col items-end text-[10px] font-mono">
+                                                            <span className="dark:text-gray-200">{fmt(dc.close)}</span>
+                                                            <span className={dc.pct >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                                                {dc.pct > 0 && '+'}{dc.pct.toFixed(2)}%
+                                                            </span>
+                                                        </div>
+                                                    ) : '-'}
+                                                </TableCell>
+                                            );
+                                        })}
+
+                                        {/* 7D Change */}
+                                        <TableCell align="right">
+                                            {hasData && data?.change_7d != null ? (
+                                                <div className="flex flex-col items-end text-[10px] font-mono">
+                                                    <span className="dark:text-gray-200">{fmt(data.close_7d)}</span>
+                                                    <span className={data.change_7d >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                                        {data.change_7d > 0 && '+'}{data.change_7d.toFixed(2)}%
+                                                    </span>
+                                                </div>
+                                            ) : '-'}
+                                        </TableCell>
+
+                                        {/* 30D Change */}
+                                        <TableCell align="right">
+                                            {hasData && data?.change_30d != null ? (
+                                                <div className="flex flex-col items-end text-[10px] font-mono">
+                                                    <span className="dark:text-gray-200">{fmt(data.close_30d)}</span>
+                                                    <span className={data.change_30d >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                                        {data.change_30d > 0 && '+'}{data.change_30d.toFixed(2)}%
+                                                    </span>
+                                                </div>
+                                            ) : '-'}
+                                        </TableCell>
+
+
+
+                                        {/* Separate Columns */}
+                                        <TableCell align="right" className={`font-bold ${indicators.rsi > 70 ? 'text-red-500' : indicators.rsi < 30 ? 'text-green-500' : 'dark:text-gray-200'}`}>
+                                            {hasData ? fmt(indicators.rsi) : '-'}
+                                        </TableCell>
+                                        <TableCell align="right" className="font-mono dark:text-gray-300">
+                                            {hasData ? fmt(indicators.adx) : '-'}
+                                        </TableCell>
+                                        <TableCell align="right" className="font-mono dark:text-gray-300">
+                                            {hasData ? (
+                                                <div className="flex flex-col items-end text-[10px]">
+                                                    <span>{fmt(indicators.sma_50)}</span>
+                                                    <span className={ltp > indicators.sma_50 ? "text-green-500" : "text-red-500"}>
+                                                        {indicators.sma_50 ? `${((ltp - indicators.sma_50) / indicators.sma_50 * 100).toFixed(2)}%` : '-'}
+                                                    </span>
+                                                </div>
+                                            ) : '-'}
+                                        </TableCell>
+                                        <TableCell align="right" className="font-mono dark:text-gray-300">
+                                            {hasData ? (
+                                                <div className="flex flex-col items-end text-[10px]">
+                                                    <span>{fmt(indicators.sma_200)}</span>
+                                                    <span className={ltp > indicators.sma_200 ? "text-green-500" : "text-red-500"}>
+                                                        {indicators.sma_200 ? `${((ltp - indicators.sma_200) / indicators.sma_200 * 100).toFixed(2)}%` : '-'}
+                                                    </span>
+                                                </div>
+                                            ) : '-'}
+                                        </TableCell>
+
+                                        {/* Stoch */}
+                                        <TableCell align="right">
+                                            {hasData ? (
+                                                <div className="flex flex-col text-[10px]">
+                                                    <span className="text-blue-500">K: {fmt(indicators.stoch_k)}</span>
+                                                    <span className="text-orange-500">D: {fmt(indicators.stoch_d)}</span>
+                                                </div>
+                                            ) : '-'}
+                                        </TableCell>
+
+                                        {/* DMI */}
+                                        <TableCell align="right">
+                                            {hasData ? (
+                                                <div className="flex flex-col text-[10px]">
+                                                    <span className="text-green-500">+DI: {fmt(indicators.dmp)}</span>
+                                                    <span className="text-red-500">-DI: {fmt(indicators.dmn)}</span>
+                                                </div>
+                                            ) : '-'}
+                                        </TableCell>
+
+                                        {/* MACD */}
+                                        <TableCell align="right">
+                                            {hasData ? (
+                                                <div className="flex flex-col text-[10px] items-end">
+                                                    <span className="text-gray-500 dark:text-gray-400">M: {fmt(indicators.macd)}</span>
+                                                    <span className="text-gray-500 dark:text-gray-400">S: {fmt(indicators.macd_signal)}</span>
+                                                    <span className={`font-bold ${indicators.macd_hist >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                        H: {fmt(indicators.macd_hist)}
+                                                    </span>
+                                                </div>
+                                            ) : '-'}
+                                        </TableCell>
+
+                                        {/* Bollinger */}
+                                        <TableCell align="right">
+                                            {hasData ? (
+                                                <div className="flex flex-col gap-0.5 items-end text-[10px]">
+                                                    <span className="text-gray-400">U: <span className="text-gray-600 dark:text-gray-300">{fmt(indicators.bb_upper)}</span></span>
+                                                    <span className="text-gray-400">M: <span className="text-gray-600 dark:text-gray-300">{fmt(indicators.bb_middle)}</span></span>
+                                                    <span className="text-gray-400">L: <span className="text-gray-600 dark:text-gray-300">{fmt(indicators.bb_lower)}</span></span>
+                                                </div>
+                                            ) : '-'}
+                                        </TableCell>
+
+                                        {/* Pivots */}
+                                        {/* Pivots Split */}
+                                        {[
+                                            { key: 's1', label: 'S1', color: 'text-green-500' },
+                                            { key: 'r1', label: 'R1', color: 'text-red-500' },
+                                            { key: 's2', label: 'S2', color: 'text-green-600' },
+                                            { key: 'r2', label: 'R2', color: 'text-red-600' }
+                                        ].map(({ key, color }) => {
+                                            const val = pp[key];
+                                            const diff = val && ltp ? ((ltp - val) / val) * 100 : null;
+                                            return (
+                                                <TableCell key={key} align="right">
+                                                    {hasData && val ? (
+                                                        <div className="flex flex-col items-end text-[10px]">
+                                                            <span className={`${color} font-bold`}>{fmt(val)}</span>
+                                                            <span className={diff && diff > 0 ? "text-green-400" : "text-red-400"}>
+                                                                {diff ? `${diff > 0 ? '+' : ''}${diff.toFixed(2)}%` : '-'}
+                                                            </span>
+                                                        </div>
+                                                    ) : '-'}
+                                                </TableCell>
+                                            );
+                                        })}
+
+                                    </TableRow>
+                                );
+                            })}
+                            {sortedInstruments.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={23} align="center" className="py-8 text-gray-500">
+                                        <div className="flex flex-col items-center gap-4">
+                                            <Typography variant="body2">No instruments found.</Typography>
+                                            {instruments.length === 0 && (
+                                                <Button
+                                                    variant="outlined"
+                                                    startIcon={<Database size={16} />}
+                                                    onClick={handlePopulate}
+                                                >
+                                                    Populate Nifty 50
+                                                </Button>
+                                            )}
                                         </div>
                                     </TableCell>
-
-                                    <TableCell align="right" className="font-mono dark:text-gray-200">
-                                        {hasData ? fmt(ltp) : '-'}
-                                    </TableCell>
-
-                                    <TableCell align="right">
-                                        {hasData ? (
-                                            <div className={`text-xs ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                {change > 0 && '+'}{fmt(change)} <br />
-                                                ({changePct.toFixed(2)}%)
-                                            </div>
-                                        ) : '-'}
-                                    </TableCell>
-
-                                    {/* Box Formation */}
-                                    <TableCell align="center">
-                                        {hasData && indicators.box_formation ? (
-                                            <div className="flex flex-col items-center gap-1 min-w-[50px]">
-                                                {indicators.box_formation.breakout === 'up' && (
-                                                    <span className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-0.5 rounded text-[10px] border border-emerald-200 dark:border-emerald-800">🚀 UP</span>
-                                                )}
-                                                {indicators.box_formation.breakout === 'down' && (
-                                                    <span className="bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 font-bold px-1.5 py-0.5 rounded text-[10px] border border-rose-200 dark:border-rose-800">📉 DOWN</span>
-                                                )}
-                                                {indicators.box_formation.breakout === 'none' && indicators.box_formation.detected && (
-                                                    <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-bold px-1.5 py-0.5 rounded text-[10px] border border-blue-200 dark:border-blue-800">BOX</span>
-                                                )}
-                                                {!indicators.box_formation.detected && indicators.box_formation.breakout === 'none' && (
-                                                    <span className="text-[10px] text-gray-400">-</span>
-                                                )}
-                                                {indicators.box_formation.detected && (
-                                                    <span className="text-[9px] text-gray-500 dark:text-gray-400 font-mono">{indicators.box_formation.containment}%</span>
-                                                )}
-                                            </div>
-                                        ) : '-'}
-                                    </TableCell>
-
-                                    {/* D-1 through D-5 as separate columns */}
-                                    {[0, 1, 2, 3, 4].map((idx) => {
-                                        const dc = data?.daily_changes?.[idx];
-                                        return (
-                                            <TableCell key={idx} align="right">
-                                                {hasData && dc?.pct != null ? (
-                                                    <div className="flex flex-col items-end text-[10px] font-mono">
-                                                        <span className="dark:text-gray-200">{fmt(dc.close)}</span>
-                                                        <span className={dc.pct >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                                            {dc.pct > 0 && '+'}{dc.pct.toFixed(2)}%
-                                                        </span>
-                                                    </div>
-                                                ) : '-'}
-                                            </TableCell>
-                                        );
-                                    })}
-
-                                    {/* 7D Change */}
-                                    <TableCell align="right">
-                                        {hasData && data?.change_7d != null ? (
-                                            <div className="flex flex-col items-end text-[10px] font-mono">
-                                                <span className="dark:text-gray-200">{fmt(data.close_7d)}</span>
-                                                <span className={data.change_7d >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                                    {data.change_7d > 0 && '+'}{data.change_7d.toFixed(2)}%
-                                                </span>
-                                            </div>
-                                        ) : '-'}
-                                    </TableCell>
-
-                                    {/* 30D Change */}
-                                    <TableCell align="right">
-                                        {hasData && data?.change_30d != null ? (
-                                            <div className="flex flex-col items-end text-[10px] font-mono">
-                                                <span className="dark:text-gray-200">{fmt(data.close_30d)}</span>
-                                                <span className={data.change_30d >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                                    {data.change_30d > 0 && '+'}{data.change_30d.toFixed(2)}%
-                                                </span>
-                                            </div>
-                                        ) : '-'}
-                                    </TableCell>
-
-
-
-                                    {/* Separate Columns */}
-                                    <TableCell align="right" className={`font-bold ${indicators.rsi > 70 ? 'text-red-500' : indicators.rsi < 30 ? 'text-green-500' : 'dark:text-gray-200'}`}>
-                                        {hasData ? fmt(indicators.rsi) : '-'}
-                                    </TableCell>
-                                    <TableCell align="right" className="font-mono dark:text-gray-300">
-                                        {hasData ? fmt(indicators.adx) : '-'}
-                                    </TableCell>
-                                    <TableCell align="right" className="font-mono dark:text-gray-300">
-                                        {hasData ? (
-                                            <div className="flex flex-col items-end text-[10px]">
-                                                <span>{fmt(indicators.sma_50)}</span>
-                                                <span className={ltp > indicators.sma_50 ? "text-green-500" : "text-red-500"}>
-                                                    {indicators.sma_50 ? `${((ltp - indicators.sma_50) / indicators.sma_50 * 100).toFixed(2)}%` : '-'}
-                                                </span>
-                                            </div>
-                                        ) : '-'}
-                                    </TableCell>
-                                    <TableCell align="right" className="font-mono dark:text-gray-300">
-                                        {hasData ? (
-                                            <div className="flex flex-col items-end text-[10px]">
-                                                <span>{fmt(indicators.sma_200)}</span>
-                                                <span className={ltp > indicators.sma_200 ? "text-green-500" : "text-red-500"}>
-                                                    {indicators.sma_200 ? `${((ltp - indicators.sma_200) / indicators.sma_200 * 100).toFixed(2)}%` : '-'}
-                                                </span>
-                                            </div>
-                                        ) : '-'}
-                                    </TableCell>
-
-                                    {/* Stoch */}
-                                    <TableCell align="right">
-                                        {hasData ? (
-                                            <div className="flex flex-col text-[10px]">
-                                                <span className="text-blue-500">K: {fmt(indicators.stoch_k)}</span>
-                                                <span className="text-orange-500">D: {fmt(indicators.stoch_d)}</span>
-                                            </div>
-                                        ) : '-'}
-                                    </TableCell>
-
-                                    {/* DMI */}
-                                    <TableCell align="right">
-                                        {hasData ? (
-                                            <div className="flex flex-col text-[10px]">
-                                                <span className="text-green-500">+DI: {fmt(indicators.dmp)}</span>
-                                                <span className="text-red-500">-DI: {fmt(indicators.dmn)}</span>
-                                            </div>
-                                        ) : '-'}
-                                    </TableCell>
-
-                                    {/* MACD */}
-                                    <TableCell align="right">
-                                        {hasData ? (
-                                            <div className="flex flex-col text-[10px] items-end">
-                                                <span className="text-gray-500 dark:text-gray-400">M: {fmt(indicators.macd)}</span>
-                                                <span className="text-gray-500 dark:text-gray-400">S: {fmt(indicators.macd_signal)}</span>
-                                                <span className={`font-bold ${indicators.macd_hist >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                                    H: {fmt(indicators.macd_hist)}
-                                                </span>
-                                            </div>
-                                        ) : '-'}
-                                    </TableCell>
-
-                                    {/* Bollinger */}
-                                    <TableCell align="right">
-                                        {hasData ? (
-                                            <div className="flex flex-col gap-0.5 items-end text-[10px]">
-                                                <span className="text-gray-400">U: <span className="text-gray-600 dark:text-gray-300">{fmt(indicators.bb_upper)}</span></span>
-                                                <span className="text-gray-400">M: <span className="text-gray-600 dark:text-gray-300">{fmt(indicators.bb_middle)}</span></span>
-                                                <span className="text-gray-400">L: <span className="text-gray-600 dark:text-gray-300">{fmt(indicators.bb_lower)}</span></span>
-                                            </div>
-                                        ) : '-'}
-                                    </TableCell>
-
-                                    {/* Pivots */}
-                                    {/* Pivots Split */}
-                                    {[
-                                        { key: 's1', label: 'S1', color: 'text-green-500' },
-                                        { key: 'r1', label: 'R1', color: 'text-red-500' },
-                                        { key: 's2', label: 'S2', color: 'text-green-600' },
-                                        { key: 'r2', label: 'R2', color: 'text-red-600' }
-                                    ].map(({ key, color }) => {
-                                        const val = pp[key];
-                                        const diff = val && ltp ? ((ltp - val) / val) * 100 : null;
-                                        return (
-                                            <TableCell key={key} align="right">
-                                                {hasData && val ? (
-                                                    <div className="flex flex-col items-end text-[10px]">
-                                                        <span className={`${color} font-bold`}>{fmt(val)}</span>
-                                                        <span className={diff && diff > 0 ? "text-green-400" : "text-red-400"}>
-                                                            {diff ? `${diff > 0 ? '+' : ''}${diff.toFixed(2)}%` : '-'}
-                                                        </span>
-                                                    </div>
-                                                ) : '-'}
-                                            </TableCell>
-                                        );
-                                    })}
-
                                 </TableRow>
-                            );
-                        })}
-                        {processedInstruments.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={23} align="center" className="py-8 text-gray-500">
-                                    <div className="flex flex-col items-center gap-4">
-                                        <Typography variant="body2">No instruments found.</Typography>
-                                        {instruments.length === 0 && (
-                                            <Button
-                                                variant="outlined"
-                                                startIcon={<Database size={16} />}
-                                                onClick={handlePopulate}
-                                            >
-                                                Populate Nifty 50
-                                            </Button>
-                                        )}
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+                {sortedInstruments.length > displayLimit && (
+                    <Box sx={{ p: 2, textAlign: 'center' }}>
+                        <Button 
+                            variant="outlined" 
+                            onClick={() => setDisplayLimit(prev => prev + 200)}
+                            startIcon={<RefreshCw size={16} />}
+                        >
+                            Load More ({sortedInstruments.length - displayLimit} remaining)
+                        </Button>
+                    </Box>
+                )}
+            </Paper>
         </div >
     );
 }

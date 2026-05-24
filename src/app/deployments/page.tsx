@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { listDeployments, stopDeployment, deleteDeployment, getDeploymentLogs, startDeployment, testDeployTrigger } from '@/services/api';
-import { Rocket, Power, Clock, Activity, AlertCircle, CheckCircle2, StopCircle, RefreshCw, Trash2, ChevronDown, ChevronUp, FileText, Eye, X, Zap } from 'lucide-react';
+import { listDeployments, stopDeployment, deleteDeployment, getDeploymentLogs, startDeployment, testDeployTrigger, getGeneralSettings, togglePauseDeployments } from '@/services/api';
+import { Rocket, Power, Clock, Activity, AlertCircle, CheckCircle2, StopCircle, RefreshCw, Trash2, ChevronDown, ChevronUp, FileText, Eye, X, Zap, PauseCircle, PlayCircle } from 'lucide-react';
 
 export default function DeploymentsPage() {
     const [deployments, setDeployments] = useState<any[]>([]);
@@ -10,6 +10,7 @@ export default function DeploymentsPage() {
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [logsMap, setLogsMap] = useState<Record<string, any[]>>({});
     const [logsLoading, setLogsLoading] = useState<string | null>(null);
+    const [allPaused, setAllPaused] = useState(false);
 
     const fetchDeployments = async () => {
         if (deployments.length === 0) setLoading(true);
@@ -26,9 +27,22 @@ export default function DeploymentsPage() {
 
     useEffect(() => {
         fetchDeployments();
-        const interval = setInterval(fetchDeployments, 10000); // 10s interval for better live tracking
+        fetchPauseState();
+        const interval = setInterval(fetchDeployments, 10000);
         return () => clearInterval(interval);
-    }, [expandedId]); // Re-run effect when expandedId changes to ensure immediate log fetch
+    }, [expandedId]);
+
+    const fetchPauseState = async () => {
+        const settings = await getGeneralSettings();
+        setAllPaused(settings?.pause_all_deployments || false);
+    };
+
+    const handleTogglePause = async () => {
+        const result = await togglePauseDeployments();
+        if (result.status === 'success') {
+            setAllPaused(result.pause_all_deployments);
+        }
+    };
 
     const handleStop = async (id: string) => {
         if (confirm("Are you sure you want to stop this strategy?")) {
@@ -72,7 +86,9 @@ export default function DeploymentsPage() {
     const getStatusBadge = (status: string) => {
         const colors: any = {
             'ACTIVE': 'bg-green-500/10 text-green-500 border-green-500/20',
+            'MONITORING': 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
             'TRADED': 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
+            'EXITED': 'bg-violet-500/10 text-violet-400 border-violet-500/20',
             'STOPPED': 'bg-gray-500/10 text-gray-500 border-gray-500/20',
         };
         return (
@@ -94,14 +110,41 @@ export default function DeploymentsPage() {
                         </h1>
                         <p className="text-gray-400 mt-2">Monitor, inspect logs, and manage your deployed trading strategies</p>
                     </div>
-                    <button
-                        onClick={fetchDeployments}
-                        className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg transition-all text-sm"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleTogglePause}
+                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all text-sm font-semibold border ${
+                                allPaused
+                                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+                                    : 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
+                            }`}
+                        >
+                            {allPaused ? (
+                                <><PlayCircle className="w-4 h-4" /> Resume All</>
+                            ) : (
+                                <><PauseCircle className="w-4 h-4" /> Pause All</>
+                            )}
+                        </button>
+                        <button
+                            onClick={fetchDeployments}
+                            className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-4 py-2.5 rounded-xl transition-all text-sm border border-gray-700"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </button>
+                    </div>
                 </div>
+
+                {/* Pause Banner */}
+                {allPaused && (
+                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-3">
+                        <PauseCircle className="w-5 h-5 text-amber-500 shrink-0" />
+                        <div>
+                            <p className="text-amber-400 font-semibold text-sm">All Deployments Paused</p>
+                            <p className="text-amber-500/60 text-xs mt-0.5">The trading engine is not evaluating any strategies. Click "Resume All" to re-enable.</p>
+                        </div>
+                    </div>
+                )}
 
                 {/* Content */}
                 {loading && deployments.length === 0 ? (
@@ -162,7 +205,7 @@ export default function DeploymentsPage() {
                                                     {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                                     {isExpanded ? 'Hide Logs' : 'View Logs'}
                                                 </button>
-                                                {dep.status === 'ACTIVE' || dep.status === 'TRADED' ? (
+                                                {dep.status === 'ACTIVE' || dep.status === 'TRADED' || dep.status === 'MONITORING' ? (
                                                     <button
                                                         onClick={() => handleStop(dep._id)}
                                                         className="flex items-center gap-1.5 bg-amber-600/10 hover:bg-amber-600 text-amber-500 hover:text-white px-3 py-2 rounded-lg transition-all text-xs font-medium border border-amber-500/20"
@@ -259,6 +302,97 @@ export default function DeploymentsPage() {
                                                     <span>Signal triggered and trade executed</span>
                                                 </div>
                                                 <span className="text-[10px] text-gray-500">{new Date(dep.last_trade_at).toLocaleString()}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Monitoring Banner */}
+                                        {dep.status === 'MONITORING' && (
+                                            <div className="mt-4 p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-xl">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2 text-cyan-400 text-sm">
+                                                        <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                                                        <span className="font-semibold">Live Position Monitoring</span>
+                                                    </div>
+                                                    {dep.ltp_updated_at && (
+                                                        <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                                                            <Clock className="w-3 h-3" />
+                                                            LTP @ {new Date(dep.ltp_updated_at).toLocaleTimeString()}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                                                    <div className="bg-black/20 p-2 rounded-lg">
+                                                        <p className="text-[10px] text-gray-500 uppercase">Entry</p>
+                                                        <p className="font-bold text-sm text-white">₹{dep.entry_price?.toFixed(2)}</p>
+                                                    </div>
+                                                    <div className={`p-2 rounded-lg border ${dep.live_ltp ? (dep.live_ltp > dep.entry_price ? 'bg-green-500/5 border-green-500/10' : 'bg-red-500/5 border-red-500/10') : 'bg-black/20 border-transparent'}`}>
+                                                        <p className="text-[10px] text-gray-500 uppercase">Live LTP</p>
+                                                        <p className={`font-bold text-sm ${dep.live_ltp ? (dep.live_ltp > dep.entry_price ? 'text-green-400' : 'text-red-400') : 'text-gray-400'}`}>
+                                                            {dep.live_ltp ? `₹${dep.live_ltp.toFixed(2)}` : '---'}
+                                                        </p>
+                                                    </div>
+                                                    <div className={`p-2 rounded-lg ${(dep.live_pnl || 0) >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                                                        <p className="text-[10px] text-gray-500 uppercase">Unrealized P&L</p>
+                                                        <p className={`font-bold text-sm ${(dep.live_pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                            {(dep.live_pnl || 0) >= 0 ? '+' : ''}₹{(dep.live_pnl || 0).toFixed(2)}
+                                                        </p>
+                                                    </div>
+                                                    <div className="bg-black/20 p-2 rounded-lg">
+                                                        <p className="text-[10px] text-gray-500 uppercase">Qty</p>
+                                                        <p className="font-bold text-sm text-white">{dep.entry_qty}</p>
+                                                    </div>
+                                                    <div className="bg-black/20 p-2 rounded-lg">
+                                                        <p className="text-[10px] text-gray-500 uppercase">Side</p>
+                                                        <p className={`font-bold text-sm ${dep.entry_side === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>{dep.entry_side}</p>
+                                                    </div>
+                                                    {dep.sl_price > 0 && (
+                                                        <div className="bg-red-500/5 border border-red-500/10 p-2 rounded-lg">
+                                                            <p className="text-[10px] text-red-500 uppercase">Stop Loss</p>
+                                                            <p className="font-bold text-sm text-red-400">₹{dep.sl_price?.toFixed(2)}</p>
+                                                        </div>
+                                                    )}
+                                                    {dep.tp_price > 0 && (
+                                                        <div className="bg-green-500/5 border border-green-500/10 p-2 rounded-lg">
+                                                            <p className="text-[10px] text-green-500 uppercase">Take Profit</p>
+                                                            <p className="font-bold text-sm text-green-400">₹{dep.tp_price?.toFixed(2)}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Exited Banner */}
+                                        {dep.status === 'EXITED' && (
+                                            <div className={`mt-4 p-4 rounded-xl border ${(dep.exit_pnl || 0) >= 0 ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2 text-sm font-semibold">
+                                                        <span>{dep.exit_reason === 'STOP_LOSS' ? '🛑' : '🎯'}</span>
+                                                        <span className={`${(dep.exit_pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                            Position Closed — {dep.exit_reason?.replace('_', ' ')}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-[10px] text-gray-500">{dep.exited_at ? new Date(dep.exited_at).toLocaleString() : ''}</span>
+                                                </div>
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                    <div className="bg-black/20 p-2 rounded-lg">
+                                                        <p className="text-[10px] text-gray-500 uppercase">Entry</p>
+                                                        <p className="font-bold text-sm text-white">₹{dep.entry_price?.toFixed(2)}</p>
+                                                    </div>
+                                                    <div className="bg-black/20 p-2 rounded-lg">
+                                                        <p className="text-[10px] text-gray-500 uppercase">Exit</p>
+                                                        <p className="font-bold text-sm text-white">₹{dep.exit_price?.toFixed(2)}</p>
+                                                    </div>
+                                                    <div className="bg-black/20 p-2 rounded-lg">
+                                                        <p className="text-[10px] text-gray-500 uppercase">Qty</p>
+                                                        <p className="font-bold text-sm text-white">{dep.entry_qty}</p>
+                                                    </div>
+                                                    <div className={`p-2 rounded-lg ${(dep.exit_pnl || 0) >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                                                        <p className="text-[10px] text-gray-500 uppercase">Final P&L</p>
+                                                        <p className={`font-bold text-sm ${(dep.exit_pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                            {(dep.exit_pnl || 0) >= 0 ? '+' : ''}₹{(dep.exit_pnl || 0).toFixed(2)}
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </div>

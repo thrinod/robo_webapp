@@ -23,11 +23,18 @@ export default function AgentLogsPage() {
   const [rlLesson, setRlLesson] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const getBaseUrl = () => {
+    if (typeof window !== 'undefined') {
+      return `http://${window.location.hostname}:8001`;
+    }
+    return "http://localhost:8001";
+  };
+
   const submitRLFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await fetch("http://localhost:8001/api/trading/rl-feedback", {
+      await fetch(`${getBaseUrl()}/api/trading/rl-feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -40,7 +47,7 @@ export default function AgentLogsPage() {
       fetchLogs();
       setRlLesson("");
     } catch (err) {
-      console.error(err);
+      console.error("Error submitting RL feedback:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -48,15 +55,16 @@ export default function AgentLogsPage() {
 
   const fetchLogs = async () => {
     try {
-      // Assuming agentic_trading is running on 8001
-      const res = await fetch("http://localhost:8001/api/logs");
+      const res = await fetch(`${getBaseUrl()}/api/logs`);
       if (res.ok) {
         const data = await res.json();
-        // reverse to show newest first
-        setLogs(data.logs.reverse());
+        if (data && data.logs) {
+          setLogs(data.logs.reverse());
+        }
       }
     } catch (error) {
-      console.error("Failed to fetch agent logs", error);
+      // Silence the error if it's a common network failure to avoid console spam during polling
+      // console.error("Agentic backend (8001) unreachable");
     } finally {
       setLoading(false);
     }
@@ -234,8 +242,8 @@ export default function AgentLogsPage() {
                   {logs.length === 0 && !loading && (
                     <div className="flex flex-col items-center justify-center h-40 text-gray-400">
                       <MessageSquare className="w-8 h-8 mb-2 opacity-20" />
-                      <p>No agent communications yet.</p>
-                      <p className="text-sm">Trigger an analysis to see logs here.</p>
+                      <p>Agentic Backend (Port 8001) is not connected.</p>
+                      <p className="text-sm mt-2">To use this module, please run <code>start_agents.bat</code></p>
                     </div>
                   )}
                   {logs.map((log, index) => (

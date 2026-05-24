@@ -22,6 +22,10 @@ export default function BacktestPage() {
     const [tradeSearchQuery, setTradeSearchQuery] = useState("");
     const [tradeSearchResults, setTradeSearchResults] = useState<any[]>([]);
     
+    // Search Filters
+    const [searchExchange, setSearchExchange] = useState<string>("NSE");
+    const [searchSegment, setSearchSegment] = useState<string>("NSE_EQ");
+    
     // Strategy Builder State
     const [strategyMode, setStrategyMode] = useState<"simple" | "advanced">("simple");
     const [simpleStrategyId, setSimpleStrategyId] = useState<string>("default");
@@ -52,8 +56,10 @@ export default function BacktestPage() {
     const [deployLotSize, setDeployLotSize] = useState<number>(25);
     const [isDeploying, setIsDeploying] = useState(false);
     const [deploySuccess, setDeploySuccess] = useState<string | null>(null);
+    const [trailingSL, setTrailingSL] = useState(false);
+    const [trailingSLTriggerPct, setTrailingSLTriggerPct] = useState<number>(40.0);
 
-    const handleSearch = async (query: string) => {
+    const handleSearch = async (query: string, exch = searchExchange, seg = searchSegment) => {
         setSearchQuery(query);
         if (!query || query.length < 2) {
             setSearchResults([]);
@@ -61,7 +67,7 @@ export default function BacktestPage() {
         }
         
         setIsSearching(true);
-        const data = await searchInstruments(query);
+        const data = await searchInstruments(query, { exchange: exch, segment: seg === 'ALL' ? undefined : seg });
         setSearchResults(data);
         setIsSearching(false);
     };
@@ -135,7 +141,9 @@ export default function BacktestPage() {
             capital_percentage: deployCapitalPercentage,
             lot_size: deployLotSize,
             is_advanced: strategyMode === 'advanced' || (strategyMode === 'simple' && simpleStrategyId !== 'default'),
-            use_intraday: useIntraday
+            use_intraday: useIntraday,
+            trailing_sl: trailingSL,
+            trailing_sl_trigger_pct: trailingSLTriggerPct
         };
         
         if (strategyMode === 'advanced') {
@@ -277,7 +285,7 @@ export default function BacktestPage() {
                                                 <label className="block text-xs text-gray-500 mb-1">Instrument Key</label>
                                                 <input 
                                                     type="text"
-                                                    placeholder="e.g. BSE_FO|888771"
+                                                    placeholder="e.g. NSE_EQ|INE002A01018"
                                                     className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-xs text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none"
                                                     value={plan.leg} // We repurpose 'leg' to store the instrument key string
                                                     onChange={(e) => {
@@ -318,13 +326,39 @@ export default function BacktestPage() {
                             <input 
                                 type="text"
                                 className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                                placeholder="Search to find a key (e.g., NIFTY 50000 CE)..."
+                                placeholder="Search to find a key (e.g., RELIANCE)..."
                                 value={searchQuery}
                                 onChange={(e) => handleSearch(e.target.value)}
                             />
                             {isSearching ? (
                                 <div className="absolute left-3 top-2.5 w-5 h-5 border-2 border-gray-500 border-t-gray-300 rounded-full animate-spin"></div>
                             ) : null}
+                        </div>
+                        
+                        <div className="flex gap-2 mt-2">
+                            <select 
+                                className="bg-gray-800 border border-gray-700 rounded text-[10px] px-2 py-1 text-gray-400"
+                                value={searchExchange}
+                                onChange={(e) => {
+                                    setSearchExchange(e.target.value);
+                                    handleSearch(searchQuery, e.target.value, searchSegment);
+                                }}
+                            >
+                                <option value="NSE">NSE</option>
+                                <option value="BSE">BSE</option>
+                            </select>
+                            <select 
+                                className="bg-gray-800 border border-gray-700 rounded text-[10px] px-2 py-1 text-gray-400"
+                                value={searchSegment}
+                                onChange={(e) => {
+                                    setSearchSegment(e.target.value);
+                                    handleSearch(searchQuery, searchExchange, e.target.value);
+                                }}
+                            >
+                                <option value="NSE_EQ">EQUITY</option>
+                                <option value="NSE_FO">F&O</option>
+                                <option value="ALL">ALL</option>
+                            </select>
                         </div>
                         
                         {searchResults.length > 0 && !selectedInstrument && (
@@ -637,6 +671,45 @@ export default function BacktestPage() {
                                                             />
                                                             <p className="text-xs text-gray-500 mt-2">Example: Nifty=25, BankNifty=15, Sensex=20. Lots = Floor(Capital / (LotSize * LTP)).</p>
                                                         </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Trailing SL Option */}
+                                            <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                                            🛡️ Trailing Stop Loss
+                                                        </h4>
+                                                        <p className="text-[10px] text-gray-500">Move SL to Break-even at target profit</p>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => setTrailingSL(!trailingSL)}
+                                                        className={`w-12 h-6 rounded-full transition-all relative ${trailingSL ? 'bg-indigo-600' : 'bg-gray-700'}`}
+                                                    >
+                                                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${trailingSL ? 'right-1' : 'left-1'}`}></div>
+                                                    </button>
+                                                </div>
+
+                                                {trailingSL && (
+                                                    <div className="pt-2 border-t border-gray-700/50 animate-in slide-in-from-top-2 duration-200">
+                                                        <label className="block text-[10px] font-medium text-gray-400 mb-2 uppercase tracking-wider">
+                                                            Trigger Profit Percentage
+                                                        </label>
+                                                        <div className="relative">
+                                                            <input 
+                                                                type="number"
+                                                                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500"
+                                                                value={trailingSLTriggerPct}
+                                                                onChange={(e) => setTrailingSLTriggerPct(Number(e.target.value))}
+                                                                step="1"
+                                                            />
+                                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-bold">%</div>
+                                                        </div>
+                                                        <p className="mt-2 text-[10px] text-indigo-400/70 italic">
+                                                            Example: If profit hits {trailingSLTriggerPct}%, SL moves to Buy Price.
+                                                        </p>
                                                     </div>
                                                 )}
                                             </div>

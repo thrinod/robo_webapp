@@ -10,7 +10,7 @@ if (!process.env.NEXT_PUBLIC_API_URL && typeof window !== 'undefined') {
 
 const api = axios.create({
     baseURL: API_URL,
-    timeout: 120000, // 2 minutes for bulk scanner operations
+    timeout: 300000, // 5 minutes global default for bulk scanner operations
     headers: {
         'Content-Type': 'application/json',
     },
@@ -434,6 +434,15 @@ export const populateScannerFno = async () => {
     }
 };
 
+export const populateScannerAll = async () => {
+    try {
+        const response = await api.post('/scanner/populate_all');
+        return response.data;
+    } catch (error) {
+        return { status: "error", message: "API Call Failed" };
+    }
+};
+
 export const fetchFnoList = async () => {
     try {
         const response = await api.post('/scanner/fetch-fno');
@@ -462,7 +471,7 @@ export const getScannerData = async (instrument_keys: string[] = [], interval = 
             interval,
             mode,
             force_refresh
-        });
+        }, { timeout: 0 }); // No timeout for batch scanner processing
         if (response.data.data && response.data.data.length > 0) {
             // console.log("Scanner Data Sample:", response.data.data[0]);
         }
@@ -635,6 +644,15 @@ export const testTelegramSettings = async (settings: any) => {
         return response.data;
     } catch (error) {
         throw error;
+    }
+};
+
+export const togglePauseDeployments = async () => {
+    try {
+        const response = await api.post('/settings/general/toggle-pause');
+        return response.data;
+    } catch (error) {
+        return { status: 'error' };
     }
 };
 

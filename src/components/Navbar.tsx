@@ -20,7 +20,14 @@ const navItems = [
             { name: "Mirae Positions", href: "/mirae-positions", icon: Activity },
         ]
     },
-    { name: "Option Chain", href: "/option-chain", icon: TrendingUp },
+    {
+        name: "Option Chain",
+        icon: TrendingUp,
+        children: [
+            { name: "REST API", href: "/option-chain", icon: TrendingUp },
+            { name: "WebSocket", href: "/option-chain-socket", icon: Activity },
+        ]
+    },
     { name: "Chart", href: "/charts", icon: LineChart },
     { name: "Analysis", href: "/analysis", icon: Activity },
     { name: "Scanner", href: "/scanner", icon: Activity },
@@ -28,11 +35,11 @@ const navItems = [
     { name: "Watchlist", href: "/watchlist", icon: Briefcase },
     { name: "Deployments", href: "/deployments", icon: Rocket },
     { name: "Settings", href: "/settings", icon: Settings },
-    { name: "Agent Control", href: "/agents", icon: Terminal },
     {
         name: "Tools",
         icon: Settings,
         children: [
+            { name: "Agent Control", href: "/agents", icon: Terminal },
             { name: "Data Viewer", href: "/data-viewer", icon: Database },
             { name: "Paper Trading", href: "/paper-trading", icon: ClipboardList },
             { name: "Backtesting", href: "/backtest", icon: Activity },

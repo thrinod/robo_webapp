@@ -882,7 +882,7 @@ export default function IndicatorsPage() {
                 const peKey = s.pe?.instrument_key;
                 return {
                     strike: s.strike,
-                    isAtm: s.strike === sortedStrikes[atmIdx].strike,
+                    isAtm: s.strike === (sortedStrikes[atmIdx] as any).strike,
                     ce: {
                         ltp: s.ce?.last_price,
                         tf5: map5m[ceKey]?.indicators || {},
