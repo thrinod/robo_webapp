@@ -431,10 +431,8 @@ export default function OptionChain() {
         try {
             if (isPaper) {
                 // Mock Trading - Place individually (API limitation or loop here)
-                const { placeMockOrder } = await import("@/services/api");
-                for (const order of orders) {
-                    await placeMockOrder(order);
-                }
+                const { placeMockOrders } = await import("@/services/api");
+                await placeMockOrders(orders);
                 console.log(`Successfully placed ${orders.length} MOCK orders`);
                 setSelectedItems({});
                 fetchPositions();

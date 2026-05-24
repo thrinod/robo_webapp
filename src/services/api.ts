@@ -264,13 +264,13 @@ export const removeFromWatchlist = async (instrument_key: string, watchlist_id =
 export default api;
 
 export const placeMockOrder = async (order: any) => {
-    try {
-        const response = await api.post('/trade/mock/place', order);
-        return response.data;
-    } catch (error) {
-        console.error("Mock Order Error", error);
-        throw error;
-    }
+    const response = await api.post('/trade/mock/place', order);
+    return response.data;
+};
+
+export const placeMockOrders = async (orders: any[]) => {
+    const response = await api.post('/trade/mock/place_orders', { orders });
+    return response.data;
 };
 
 export const getMockPositions = async () => {
