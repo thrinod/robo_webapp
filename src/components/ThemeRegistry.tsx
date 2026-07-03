@@ -53,9 +53,9 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
                             text: { primary: "#171717" }
                         }
                         : {
-                            // Dark mode colors
-                            background: { default: "#0a0a0a", paper: "#1f2937" }, // gray-800
-                            text: { primary: "#ededed" }
+                            // 🎨 Charcoal Rich — GitHub Dark base, colored tinted cards
+                            background: { default: "#1a202c", paper: "#1e2433" },
+                            text: { primary: "#e8eaf0" }
                         }),
                 },
             }),

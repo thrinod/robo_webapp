@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { listDeployments, stopDeployment, deleteDeployment, getDeploymentLogs, startDeployment, testDeployTrigger, getGeneralSettings, togglePauseDeployments } from '@/services/api';
+import { listDeployments, stopDeployment, deleteDeployment, getDeploymentLogs, startDeployment, testDeployTrigger, getGeneralSettings, togglePauseDeployments, deployQuickOptionStrategy } from '@/services/api';
 import { Rocket, Power, Clock, Activity, AlertCircle, CheckCircle2, StopCircle, RefreshCw, Trash2, ChevronDown, ChevronUp, FileText, Eye, X, Zap, PauseCircle, PlayCircle } from 'lucide-react';
 
 export default function DeploymentsPage() {
@@ -11,6 +11,30 @@ export default function DeploymentsPage() {
     const [logsMap, setLogsMap] = useState<Record<string, any[]>>({});
     const [logsLoading, setLogsLoading] = useState<string | null>(null);
     const [allPaused, setAllPaused] = useState(false);
+    const [deployingQuick, setDeployingQuick] = useState(false);
+    const [quickDeployIndex, setQuickDeployIndex] = useState<'NIFTY' | 'SENSEX'>('NIFTY');
+    const [quickDeployType, setQuickDeployType] = useState<'bullish' | 'bearish'>('bullish');
+    const [showQuickDeployDropdown, setShowQuickDeployDropdown] = useState(false);
+
+    const handleQuickDeployGeneric = async (mode: 'MOCK' | 'LIVE') => {
+        if (confirm(`Are you sure you want to deploy the ${quickDeployIndex} ATM ${quickDeployType.toUpperCase()} Strategy in ${mode} mode?`)) {
+            setDeployingQuick(true);
+            setShowQuickDeployDropdown(false);
+            try {
+                const res = await deployQuickOptionStrategy(quickDeployIndex, quickDeployType, mode);
+                if (res.status === 'success') {
+                    alert(`${quickDeployIndex} ATM ${quickDeployType.toUpperCase()} Strategy deployed successfully in ${mode} mode!`);
+                    fetchDeployments();
+                } else {
+                    alert(`Deployment failed: ${res.message || 'Unknown error'}`);
+                }
+            } catch (err: any) {
+                alert(`Error: ${err.message || 'Network error'}`);
+            } finally {
+                setDeployingQuick(false);
+            }
+        }
+    };
 
     const fetchDeployments = async () => {
         if (deployments.length === 0) setLoading(true);
@@ -111,6 +135,79 @@ export default function DeploymentsPage() {
                         <p className="text-gray-400 mt-2">Monitor, inspect logs, and manage your deployed trading strategies</p>
                     </div>
                     <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowQuickDeployDropdown(!showQuickDeployDropdown)}
+                                disabled={deployingQuick}
+                                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:opacity-50 px-5 py-2.5 rounded-xl transition-all text-sm font-semibold text-white shadow-[0_0_15px_rgba(79,70,229,0.3)] border border-indigo-500"
+                            >
+                                <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                Quick Deploy ATM
+                                <ChevronDown className="w-4 h-4" />
+                            </button>
+                            
+                            {showQuickDeployDropdown && (
+                                <div className="absolute right-0 mt-2 w-72 bg-[#121214] border border-gray-800 rounded-2xl p-4 shadow-2xl z-50 space-y-4 animate-in fade-in slide-in-from-top-2 duration-150">
+                                    <div className="flex justify-between items-center pb-2 border-b border-gray-800">
+                                        <span className="font-bold text-xs text-gray-400 uppercase tracking-wider">Strategy Params</span>
+                                        <button onClick={() => setShowQuickDeployDropdown(false)} className="text-gray-500 hover:text-gray-300 text-xs">Close</button>
+                                    </div>
+                                    
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Select Index</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {["NIFTY", "SENSEX"].map((idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => setQuickDeployIndex(idx as any)}
+                                                    className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${quickDeployIndex === idx ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 'bg-black/20 border-gray-800 text-gray-400 hover:text-gray-200'}`}
+                                                >
+                                                    {idx}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Strategy Type</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setQuickDeployType("bullish")}
+                                                className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${quickDeployType === "bullish" ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-black/20 border-gray-800 text-gray-400 hover:text-gray-200'}`}
+                                            >
+                                                📈 Bullish (CE)
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setQuickDeployType("bearish")}
+                                                className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${quickDeployType === "bearish" ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-black/20 border-gray-800 text-gray-400 hover:text-gray-200'}`}
+                                            >
+                                                📉 Bearish (PE)
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 border-t border-gray-800 grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleQuickDeployGeneric("MOCK")}
+                                            className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-all shadow-[0_0_10px_rgba(79,70,229,0.2)]"
+                                        >
+                                            Deploy Mock
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleQuickDeployGeneric("LIVE")}
+                                            className="w-full py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold transition-all shadow-[0_0_10px_rgba(220,38,38,0.2)]"
+                                        >
+                                            Deploy Live
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                         <button
                             onClick={handleTogglePause}
                             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all text-sm font-semibold border ${
@@ -177,18 +274,42 @@ export default function DeploymentsPage() {
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                                        <h3 className="text-lg font-bold text-white">{dep.primary_instrument}</h3>
+                                                        <h3 className="text-lg font-bold text-white">
+                                                            {dep.instrument_symbol || dep.instrument_name || dep.primary_instrument}
+                                                        </h3>
+                                                        {dep.instrument_name && dep.instrument_symbol && dep.instrument_name !== dep.instrument_symbol && (
+                                                            <span className="text-xs text-gray-400">({dep.instrument_name})</span>
+                                                        )}
                                                         {getStatusBadge(dep.status)}
                                                         <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-bold ${dep.deployment_mode === 'LIVE' ? 'bg-red-900/30 text-red-400' : 'bg-blue-900/30 text-blue-400'}`}>
                                                             {dep.deployment_mode}
                                                         </span>
+                                                        {dep.instrument_option_type && (
+                                                            <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${dep.instrument_option_type === 'CE' ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
+                                                                {dep.instrument_option_type === 'CE' ? '📈 CALL' : '📉 PUT'}
+                                                            </span>
+                                                        )}
+                                                        {dep.instrument_strike != null && (
+                                                            <span className="text-[10px] px-2 py-0.5 rounded bg-purple-900/30 text-purple-400 font-bold">
+                                                                Strike: ₹{Number(dep.instrument_strike).toLocaleString()}
+                                                            </span>
+                                                        )}
+                                                        {dep.instrument_expiry && (
+                                                            <span className="text-[10px] px-2 py-0.5 rounded bg-gray-700 text-gray-300 font-mono">
+                                                                Exp: {dep.instrument_expiry}
+                                                            </span>
+                                                        )}
                                                         {dep.trade_instrument_key && dep.trade_instrument_key !== dep.primary_instrument && (
-                                                            <span className="text-[10px] px-2 py-0.5 rounded bg-amber-900/30 text-amber-400 font-bold">
-                                                                Exec: {dep.trade_instrument_key}
+                                                            <span className="text-[10px] px-2 py-0.5 rounded bg-amber-900/30 text-amber-400 font-bold" title={dep.trade_instrument_key}>
+                                                                Exec: {dep.trade_instrument_symbol || dep.trade_instrument_key}
+                                                                {dep.trade_instrument_option_type && ` (${dep.trade_instrument_option_type})`}
+                                                                {dep.trade_instrument_strike != null && ` ₹${Number(dep.trade_instrument_strike).toLocaleString()}`}
+                                                                {dep.trade_instrument_expiry && ` Exp: ${dep.trade_instrument_expiry}`}
                                                             </span>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+                                                        <span className="flex items-center gap-1 font-mono text-[10px] text-gray-600" title="Instrument Key">{dep.primary_instrument}</span>
                                                         <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(dep.deployed_at).toLocaleString()}</span>
                                                         <span className="flex items-center gap-1"><Activity className="w-3 h-3" /> {dep.interval || 'N/A'}</span>
                                                         <span className="flex items-center gap-1 font-mono text-indigo-400">Qty: {dep.quantity}</span>
@@ -282,14 +403,48 @@ export default function DeploymentsPage() {
                                         {dep.execution_plan && dep.execution_plan.length > 0 && (
                                             <div className="mt-4 space-y-2">
                                                 <p className="text-[10px] text-gray-500 uppercase tracking-wider">Execution Plan ({dep.execution_plan.length} Legs)</p>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                    {dep.execution_plan.map((leg: any, li: number) => (
-                                                        <div key={li} className="bg-gray-800/50 border border-gray-700 rounded-lg p-2 text-xs flex items-center gap-3">
-                                                            <span className="bg-gray-700 text-gray-300 px-2 py-0.5 rounded font-mono text-[10px]">Leg {li + 1}</span>
-                                                            <span className="text-white font-medium flex-1 truncate">{leg.leg}</span>
-                                                            <span className="text-gray-500">{leg.timeframe}</span>
-                                                        </div>
-                                                    ))}
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {dep.execution_plan.map((leg: any, li: number) => {
+                                                        const details = leg.instrument_details || {};
+                                                        const hasDetails = !!details.symbol;
+                                                        return (
+                                                            <div key={li} className="bg-gray-800/30 border border-gray-800/80 rounded-xl p-3 text-xs flex flex-col gap-2 shadow-sm">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded font-mono text-[10px] font-bold">Leg {li + 1}</span>
+                                                                    <span className="text-gray-400 font-medium text-[10px]">{leg.timeframe}</span>
+                                                                </div>
+                                                                <div className="flex flex-col gap-1">
+                                                                    <span className="text-white font-bold text-xs truncate" title={leg.leg}>
+                                                                        {hasDetails ? (details.symbol || leg.leg) : leg.leg}
+                                                                    </span>
+                                                                    {hasDetails && details.name && (
+                                                                        <span className="text-[11px] text-gray-400 font-medium">
+                                                                            {details.name}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {hasDetails && (details.option_type || details.strike != null || details.expiry) && (
+                                                                    <div className="flex flex-wrap gap-1.5 mt-1">
+                                                                        {details.option_type && (
+                                                                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${details.option_type === 'CE' ? 'bg-green-950 text-green-400 border border-green-500/10' : 'bg-red-950 text-red-400 border border-red-500/10'}`}>
+                                                                                {details.option_type === 'CE' ? '📈 CALL' : '📉 PUT'}
+                                                                            </span>
+                                                                        )}
+                                                                        {details.strike != null && (
+                                                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-400 font-bold border border-purple-500/10">
+                                                                                Strike: ₹{Number(details.strike).toLocaleString()}
+                                                                            </span>
+                                                                        )}
+                                                                        {details.expiry && (
+                                                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-900 text-gray-400 font-mono border border-gray-800">
+                                                                                Exp: {details.expiry}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         )}

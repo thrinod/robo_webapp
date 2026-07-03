@@ -186,9 +186,9 @@ export const getUserCharges = async () => {
 
 
 // Scanner Results Persistence
-export const getScannerResults = async () => {
+export const getScannerResults = async (type?: string) => {
     try {
-        const res = await api.get('/scanner/results');
+        const res = await api.get('/scanner/results', { params: { type } });
         return res.data.data || [];
     } catch (error) {
         return [];
@@ -376,9 +376,9 @@ export const getAliceOptionChain = async (instrument_key: string, expiry_date: s
     }
 };
 // Scanner Persistence
-export const getScannerInstruments = async () => {
+export const getScannerInstruments = async (type = "main") => {
     try {
-        const response = await api.get('/scanner/instruments');
+        const response = await api.get('/scanner/instruments', { params: { type } });
         return response.data.data || [];
     } catch (error) {
         console.error("Error fetching scanner instruments", error);
@@ -386,9 +386,9 @@ export const getScannerInstruments = async () => {
     }
 };
 
-export const addScannerInstruments = async (items: any[]) => {
+export const addScannerInstruments = async (items: any[], type = "main") => {
     try {
-        const response = await api.post('/scanner/instruments', items);
+        const response = await api.post('/scanner/instruments', items, { params: { type } });
         return response.data;
     } catch (error) {
         console.error("Error adding scanner instruments", error);
@@ -396,9 +396,9 @@ export const addScannerInstruments = async (items: any[]) => {
     }
 };
 
-export const removeScannerInstrument = async (instrument_key: string) => {
+export const removeScannerInstrument = async (instrument_key: string, type = "main") => {
     try {
-        const response = await api.delete(`/scanner/instruments/${instrument_key}`);
+        const response = await api.delete(`/scanner/instruments/${instrument_key}`, { params: { type } });
         return response.data;
     } catch (error) {
         console.error("Error removing scanner instrument", error);
@@ -406,9 +406,9 @@ export const removeScannerInstrument = async (instrument_key: string) => {
     }
 };
 
-export const clearScannerInstruments = async () => {
+export const clearScannerInstruments = async (type = "main") => {
     try {
-        const response = await api.delete('/scanner/instruments');
+        const response = await api.delete('/scanner/instruments', { params: { type } });
         return response.data;
     } catch (error) {
         return { status: "error" };
@@ -502,6 +502,20 @@ export const deployStrategy = async (payload: any) => {
     }
 };
 
+export const deployQuickOptionStrategy = async (index: string = "NIFTY", type: string = "bullish", mode: string = "MOCK") => {
+    try {
+        const response = await api.post('/deploy/quick-option-strategy', null, { params: { index, type, mode } });
+        return response.data;
+    } catch (error: any) {
+        console.error('Quick Option Strategy Deployment Error:', error);
+        return { status: 'error', message: error.response?.data?.detail || 'Failed to deploy quick option strategy' };
+    }
+};
+
+export const deployQuickNiftyAtm = async (mode: string = "MOCK") => {
+    return deployQuickOptionStrategy("NIFTY", "bullish", mode);
+};
+
 export const detectTelegramChat = async (token: string) => {
     try {
         const response = await api.post('/settings/telegram/detect', { bot_token: token });
@@ -547,6 +561,68 @@ export const getMiraeFunds = async () => {
         return null;
     }
 };
+
+// Mirae F&O / Option Chain Speed APIs
+export const getMiraeExpiryDates = async (instrument_key: string) => {
+    try {
+        const response = await api.get('/mirae/options/expiry', { params: { instrument_key } });
+        return response.data.data;
+    } catch (error) {
+        return [];
+    }
+};
+
+export const getMiraeOptionChain = async (instrument_key: string, expiry_date: string) => {
+    try {
+        const response = await api.get('/mirae/options/chain', {
+            params: { instrument_key, expiry_date }
+        });
+        return response.data;
+    } catch (error) {
+        return { data: [], spot_price: 0, totals: { ce: 0, pe: 0 } };
+    }
+};
+
+export const placeMiraeOrders = async (orders: any[]) => {
+    return api.post('/mirae/trade/place_orders', { orders });
+};
+
+export const cancelMiraeAllOrders = async () => {
+    return api.post('/mirae/trade/cancel_all');
+};
+
+export const squareOffMiraeAll = async () => {
+    return api.post('/mirae/trade/square_off');
+};
+
+export const exitMiraePosition = async (instrument_key: string) => {
+    try {
+        const response = await api.post('/mirae/trade/exit', { instrument_key });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const getMiraeQuotes = async (instrument_keys: string[]) => {
+    try {
+        const response = await api.post('/mirae/market/quotes', { instrument_keys });
+        return response.data.data || {};
+    } catch (error) {
+        return {};
+    }
+};
+
+export const getMiraeUserCharges = async () => {
+    try {
+        const response = await api.get('/mirae/user/charges');
+        return response.data.data || { total: { grand_total: 0, trade_count: 0 }, trades: [] };
+    } catch (error) {
+        console.error("Mirae Charges Error", error);
+        return { total: { grand_total: 0, trade_count: 0 }, trades: [] };
+    }
+};
+
 
 export const getGeneralSettings = async () => {
     try {
@@ -654,5 +730,49 @@ export const togglePauseDeployments = async () => {
     } catch (error) {
         return { status: 'error' };
     }
+};
+
+// --- Checklist MongoDB Endpoints ---
+export const getChecklistRules = async () => {
+    try {
+        const res = await api.get('/checklist/rules');
+        return res.data.rules || [];
+    } catch (e) {
+        return null;
+    }
+};
+
+export const saveChecklistRules = async (rules: any[]) => {
+    return api.post('/checklist/rules', { rules });
+};
+
+export const getChecklistThreshold = async () => {
+    try {
+        const res = await api.get('/checklist/threshold');
+        return res.data.threshold ?? 70;
+    } catch (e) {
+        return null;
+    }
+};
+
+export const saveChecklistThreshold = async (threshold: number) => {
+    return api.post('/checklist/threshold', { threshold });
+};
+
+export const getChecklistJournal = async () => {
+    try {
+        const res = await api.get('/checklist/journal');
+        return res.data.data || [];
+    } catch (e) {
+        return [];
+    }
+};
+
+export const addChecklistJournalEntry = async (entry: any) => {
+    return api.post('/checklist/journal', entry);
+};
+
+export const clearChecklistJournal = async () => {
+    return api.delete('/checklist/journal');
 };
 

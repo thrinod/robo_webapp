@@ -188,14 +188,14 @@ export default function MiraePositionsPage() {
         <div className="space-y-6 pb-20">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-gray-800 dark:text-slate-100 flex items-center gap-3">
                         <Building2 className="w-8 h-8 text-indigo-500" />
                         Mirae Asset Positions
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">Monitor and automate your mStock exits</p>
+                    <p className="text-gray-500 dark:text-slate-400 text-sm">Monitor and automate your mStock exits</p>
                 </div>
 
-                <Paper className="p-2 flex items-center gap-4 bg-white dark:bg-gray-800 shadow-sm border dark:border-gray-700">
+                <Paper className="p-2 flex items-center gap-4 bg-white dark:bg-[#252d3d] shadow-sm border dark:border-[#4a6fa5]">
                     <FormControl size="small" variant="outlined" sx={{ minWidth: 120 }}>
                         <InputLabel>Refresh</InputLabel>
                         <Select
@@ -232,17 +232,17 @@ export default function MiraePositionsPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Summary Cards */}
-                <Card className="lg:col-span-1 shadow-sm border dark:bg-gray-800 dark:border-gray-700">
+                <Card className="lg:col-span-1 shadow-sm border dark:bg-[#252d3d] dark:border-[#4a6fa5]">
                     <CardContent>
-                        <Typography color="textSecondary" variant="subtitle2" className="dark:text-gray-400">Total P&L</Typography>
+                        <Typography color="textSecondary" variant="subtitle2" className="dark:text-slate-400">Total P&L</Typography>
                         <Typography variant="h4" className={clsx("font-bold",
                             totalPnl >= 0 ? "text-green-600" : "text-red-600"
                         )}>
                             ₹ {fmt(totalPnl)}
                         </Typography>
-                        <div className="mt-4 pt-4 border-t dark:border-gray-700">
-                            <Typography color="textSecondary" variant="caption" className="dark:text-gray-400 block">Available Margin / Funds</Typography>
-                            <Typography variant="h6" className="dark:text-gray-100">
+                        <div className="mt-4 pt-4 border-t dark:border-[#4a6fa5]">
+                            <Typography color="textSecondary" variant="caption" className="dark:text-slate-400 block">Available Margin / Funds</Typography>
+                            <Typography variant="h6" className="dark:text-slate-100">
                                 {funds && funds.status === "error" 
                                     ? <span className="text-red-500 text-sm">{funds.message || 'Error'}</span>
                                     : `₹ ${fmt(getAvailableMargin(funds))}`
@@ -254,15 +254,15 @@ export default function MiraePositionsPage() {
 
                 {/* Positions Main Area */}
                 <div className="lg:col-span-3">
-                    <TableContainer component={Paper} className="shadow-sm border dark:bg-gray-800 dark:border-gray-700">
+                    <TableContainer component={Paper} className="shadow-sm border dark:bg-[#252d3d] dark:border-[#4a6fa5]">
                         <Table size="small">
-                            <TableHead className="bg-gray-50 dark:bg-gray-700">
+                            <TableHead className="bg-gray-50 dark:bg-[#2d3748]">
                                 <TableRow>
-                                    <TableCell className="font-bold dark:text-gray-200 py-3">Symbol / Qty</TableCell>
-                                    <TableCell align="right" className="font-bold dark:text-gray-200">Price / LTP</TableCell>
-                                    <TableCell align="right" className="font-bold dark:text-gray-200">PnL</TableCell>
-                                    <TableCell align="center" className="font-bold dark:text-gray-200" style={{ width: '300px' }}>Auto Exit Controls</TableCell>
-                                    <TableCell align="center" className="font-bold dark:text-gray-200">Action</TableCell>
+                                    <TableCell className="font-bold dark:text-slate-200 py-3">Symbol / Qty</TableCell>
+                                    <TableCell align="right" className="font-bold dark:text-slate-200">Price / LTP</TableCell>
+                                    <TableCell align="right" className="font-bold dark:text-slate-200">PnL</TableCell>
+                                    <TableCell align="center" className="font-bold dark:text-slate-200" style={{ width: '300px' }}>Auto Exit Controls</TableCell>
+                                    <TableCell align="center" className="font-bold dark:text-slate-200">Action</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -281,9 +281,9 @@ export default function MiraePositionsPage() {
                                         if (qty === 0) return null;
 
                                         return (
-                                            <TableRow key={key || idx} hover className="dark:hover:bg-gray-700 transition-colors">
+                                            <TableRow key={key || idx} hover className="dark:hover:bg-[#2d3748] transition-colors">
                                                 <TableCell className="py-4">
-                                                    <div className="font-bold dark:text-gray-100">{pos.trading_symbol || pos.symbol}</div>
+                                                    <div className="font-bold dark:text-slate-100">{pos.trading_symbol || pos.symbol}</div>
                                                     <div className="flex items-center gap-2 mt-1">
                                                         <Chip
                                                             label={qty > 0 ? `LONG: ${qty}` : `SHORT: ${qty}`}
@@ -294,8 +294,8 @@ export default function MiraePositionsPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell align="right">
-                                                    <div className="text-xs text-gray-500 dark:text-gray-400">Avg: {(pos.average_price || pos.buy_price || 0).toFixed(2)}</div>
-                                                    <div className="font-mono font-bold dark:text-gray-200">{(pos.last_price || pos.ltp || 0).toFixed(2)}</div>
+                                                    <div className="text-xs text-gray-500 dark:text-slate-400">Avg: {(pos.average_price || pos.buy_price || 0).toFixed(2)}</div>
+                                                    <div className="font-mono font-bold dark:text-slate-200">{(pos.last_price || pos.ltp || 0).toFixed(2)}</div>
                                                 </TableCell>
                                                 <TableCell align="right">
                                                     <div className={clsx("font-bold", calculatePnl(pos) >= 0 ? "text-green-600" : "text-red-600")}>

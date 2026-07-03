@@ -32,6 +32,23 @@ export default function SettingsPage() {
     const [algoNameInput, setAlgoNameInput] = useState("");
     const [tokenLoading, setTokenLoading] = useState(false);
 
+    const [agenticEnabled, setAgenticEnabled] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const stored = localStorage.getItem("global_enable_agentic");
+            setAgenticEnabled(stored === "true");
+        }
+    }, []);
+
+    const handleToggleAgentic = (val: boolean) => {
+        setAgenticEnabled(val);
+        if (typeof window !== "undefined") {
+            localStorage.setItem("global_enable_agentic", val.toString());
+            localStorage.setItem("speed_enable_agentic", val.toString());
+        }
+    };
+
     const fetchUpstoxStatus = useCallback(async () => {
         const data = await getUpstoxStatus();
         if (data?.upstox === "connected") {
@@ -282,6 +299,36 @@ export default function SettingsPage() {
                                     className="sr-only peer"
                                     checked={general.enforce_market_hours}
                                     onChange={(e) => setGeneral({ ...general, enforce_market_hours: e.target.checked })}
+                                />
+                                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Agentic AI Configuration Card */}
+                <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-xl mb-6">
+                    <div className="bg-indigo-600/10 p-6 border-b border-gray-800 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Sparkles className="w-6 h-6 text-purple-400" />
+                            <div>
+                                <h2 className="text-lg font-bold">Agentic AI Configuration</h2>
+                                <p className="text-xs text-gray-500">Enable or disable Ollama AI copilot features across the application</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="font-semibold text-white">Enable Agentic AI Systems</h3>
+                                <p className="text-sm text-gray-400">If enabled, the application will activate co-pilot analysis and auto-pilot execution options powered by local Ollama AI models. If disabled, all background AI queries and logs check loops will be deactivated to conserve system resources.</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer ml-4">
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only peer"
+                                    checked={agenticEnabled}
+                                    onChange={(e) => handleToggleAgentic(e.target.checked)}
                                 />
                                 <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                             </label>

@@ -76,29 +76,29 @@ export default function AliceOptionChain() {
             </div>
 
             {/* Controls */}
-            <Paper className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-center shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700">
+            <Paper className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-center shadow-sm bg-white dark:bg-[#252d3d] dark:border-[#4a6fa5]">
                 <FormControl size="small" fullWidth>
-                    <InputLabel className="dark:text-gray-400">Index</InputLabel>
+                    <InputLabel className="dark:text-slate-400">Index</InputLabel>
                     <Select value={index} label="Index" onChange={(e) => setIndex(e.target.value)} className="dark:text-white">
                         {INDICES.map(idx => <MenuItem key={idx.value} value={idx.value}>{idx.label}</MenuItem>)}
                     </Select>
                 </FormControl>
 
                 <FormControl size="small" fullWidth disabled={expiryDates.length === 0}>
-                    <InputLabel className="dark:text-gray-400">Expiry</InputLabel>
+                    <InputLabel className="dark:text-slate-400">Expiry</InputLabel>
                     <Select value={expiry} label="Expiry" onChange={(e) => setExpiry(e.target.value)} className="dark:text-white">
                         {expiryDates.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
                     </Select>
                 </FormControl>
 
                 <div className="text-center">
-                    <Typography variant="caption" className="dark:text-gray-400 block">Spot Price</Typography>
+                    <Typography variant="caption" className="dark:text-slate-400 block">Spot Price</Typography>
                     <Typography variant="h6" className="font-bold text-blue-600 dark:text-blue-400">{spot.toFixed(2)}</Typography>
                 </div>
             </Paper>
 
             {/* Chain Table */}
-            <TableContainer component={Paper} className="max-h-[70vh] bg-white dark:bg-gray-800">
+            <TableContainer component={Paper} className="max-h-[70vh] bg-white dark:bg-[#252d3d]">
                 <Table stickyHeader size="small">
                     <TableHead>
                         <TableRow>
@@ -106,41 +106,41 @@ export default function AliceOptionChain() {
                             <TableCell className="bg-gray-800 text-white w-24 text-center">STRIKE</TableCell>
                             <TableCell align="center" colSpan={4} className="bg-red-50 dark:bg-red-900/30">PUTS</TableCell>
                         </TableRow>
-                        <TableRow className="bg-gray-100 dark:bg-gray-900">
-                            <TableCell align="right" className="dark:text-gray-300">OI</TableCell>
-                            <TableCell align="right" className="dark:text-gray-300">LTP</TableCell>
-                            <TableCell align="center" className="dark:text-gray-300">Buy</TableCell>
-                            <TableCell align="center" className="dark:text-gray-300">Sell</TableCell>
-                            <TableCell align="center" className="bg-gray-200 dark:bg-gray-800 font-bold dark:text-white">Price</TableCell>
-                            <TableCell align="center" className="dark:text-gray-300">Buy</TableCell>
-                            <TableCell align="center" className="dark:text-gray-300">Sell</TableCell>
-                            <TableCell align="right" className="dark:text-gray-300">LTP</TableCell>
-                            <TableCell align="right" className="dark:text-gray-300">OI</TableCell>
+                        <TableRow className="bg-gray-100 dark:bg-[#1e2433]">
+                            <TableCell align="right" className="dark:text-slate-300">OI</TableCell>
+                            <TableCell align="right" className="dark:text-slate-300">LTP</TableCell>
+                            <TableCell align="center" className="dark:text-slate-300">Buy</TableCell>
+                            <TableCell align="center" className="dark:text-slate-300">Sell</TableCell>
+                            <TableCell align="center" className="bg-gray-200 dark:bg-[#252d3d] font-bold dark:text-white">Price</TableCell>
+                            <TableCell align="center" className="dark:text-slate-300">Buy</TableCell>
+                            <TableCell align="center" className="dark:text-slate-300">Sell</TableCell>
+                            <TableCell align="right" className="dark:text-slate-300">LTP</TableCell>
+                            <TableCell align="right" className="dark:text-slate-300">OI</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {chain.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={9} align="center" className="py-10 dark:text-gray-400">
+                                <TableCell colSpan={9} align="center" className="py-10 dark:text-slate-400">
                                     {status === 'CONNECTED' ? "No Data Available" : "Please Connect to Alice Blue"}
                                 </TableCell>
                             </TableRow>
                         ) : chain.map((row: any) => (
-                            <TableRow key={row.strike} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <TableRow key={row.strike} className="hover:bg-gray-50 dark:hover:bg-[#252d3d]">
                                 {/* CALLS */}
-                                <TableCell align="right" className="dark:text-gray-200">{row.ce?.oi || '-'}</TableCell>
+                                <TableCell align="right" className="dark:text-slate-200">{row.ce?.oi || '-'}</TableCell>
                                 <TableCell align="right" className="font-bold text-green-700 dark:text-green-400">{row.ce?.ltp || '-'}</TableCell>
                                 <TableCell padding="checkbox"><Checkbox size="small" disabled /></TableCell>
                                 <TableCell padding="checkbox"><Checkbox size="small" disabled /></TableCell>
 
                                 {/* STRIKE */}
-                                <TableCell align="center" className="bg-gray-100 dark:bg-gray-900 font-bold dark:text-white">{row.strike}</TableCell>
+                                <TableCell align="center" className="bg-gray-100 dark:bg-[#1e2433] font-bold dark:text-white">{row.strike}</TableCell>
 
                                 {/* PUTS */}
                                 <TableCell padding="checkbox"><Checkbox size="small" disabled /></TableCell>
                                 <TableCell padding="checkbox"><Checkbox size="small" disabled /></TableCell>
                                 <TableCell align="right" className="font-bold text-red-700 dark:text-red-400">{row.pe?.ltp || '-'}</TableCell>
-                                <TableCell align="right" className="dark:text-gray-200">{row.pe?.oi || '-'}</TableCell>
+                                <TableCell align="right" className="dark:text-slate-200">{row.pe?.oi || '-'}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

@@ -97,7 +97,7 @@ export default function CompoundCalculatorPage() {
   const COLORS = ['#3b82f6', '#10b981']; // blue-500, emerald-500
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#1e2433] p-4 sm:p-6 lg:p-8 transition-colors duration-200">
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
@@ -106,7 +106,7 @@ export default function CompoundCalculatorPage() {
             <Calculator className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             Compound Interest Calculator
           </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
+          <p className="mt-2 text-gray-600 dark:text-slate-400">
             Calculate your investment growth over time through the power of compound interest.
           </p>
         </div>
@@ -114,7 +114,7 @@ export default function CompoundCalculatorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Input Panel */}
-          <div className="lg:col-span-1 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="lg:col-span-1 bg-white dark:bg-[#252d3d] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-[#4a6fa5]">
             <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-white flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-green-500" />
               Investment Details
@@ -123,7 +123,7 @@ export default function CompoundCalculatorPage() {
             <div className="space-y-5">
               {/* Principal Input */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-gray-500" />
                   Initial Principal Amount
                 </label>
@@ -133,7 +133,7 @@ export default function CompoundCalculatorPage() {
                     type="number"
                     value={principal}
                     onChange={(e) => setPrincipal(Number(e.target.value))}
-                    className="w-full pl-8 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white font-medium"
+                    className="w-full pl-8 pr-4 py-3 bg-gray-50 dark:bg-[#1e2433] border border-gray-200 dark:border-[#4a6fa5] rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white font-medium"
                     min="0"
                   />
                 </div>
@@ -141,7 +141,7 @@ export default function CompoundCalculatorPage() {
 
               {/* Interest Rate */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                   <Percent className="w-4 h-4 text-gray-500" />
                   Interest Rate (%)
                 </label>
@@ -150,14 +150,14 @@ export default function CompoundCalculatorPage() {
                     type="number"
                     value={rate}
                     onChange={(e) => setRate(Number(e.target.value))}
-                    className="w-2/3 px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white font-medium"
+                    className="w-2/3 px-4 py-3 bg-gray-50 dark:bg-[#1e2433] border border-gray-200 dark:border-[#4a6fa5] rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white font-medium"
                     step="0.1"
                     min="0"
                   />
                   <select
                     value={ratePeriod}
                     onChange={(e) => setRatePeriod(Number(e.target.value))}
-                    className="w-1/3 px-2 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white font-medium"
+                    className="w-1/3 px-2 py-3 bg-gray-50 dark:bg-[#1e2433] border border-gray-200 dark:border-[#4a6fa5] rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white font-medium"
                   >
                     <option value={1}>Annually</option>
                     <option value={4}>Quarterly</option>
@@ -171,7 +171,7 @@ export default function CompoundCalculatorPage() {
 
               {/* Total Time */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-gray-500" />
                   Total Time
                 </label>
@@ -181,7 +181,7 @@ export default function CompoundCalculatorPage() {
                       type="number"
                       value={years}
                       onChange={(e) => setYears(Number(e.target.value))}
-                      className="w-full pl-4 pr-12 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white font-medium"
+                      className="w-full pl-4 pr-12 py-3 bg-gray-50 dark:bg-[#1e2433] border border-gray-200 dark:border-[#4a6fa5] rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white font-medium"
                       min="0"
                       max="100"
                     />
@@ -195,7 +195,7 @@ export default function CompoundCalculatorPage() {
                         const val = Number(e.target.value);
                         if (val >= 0 && val <= 11) setMonths(val);
                       }}
-                      className="w-full pl-4 pr-16 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white font-medium"
+                      className="w-full pl-4 pr-16 py-3 bg-gray-50 dark:bg-[#1e2433] border border-gray-200 dark:border-[#4a6fa5] rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white font-medium"
                       min="0"
                       max="11"
                     />
@@ -206,13 +206,13 @@ export default function CompoundCalculatorPage() {
 
               {/* Compounding Frequency */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                   Compounding Frequency
                 </label>
                 <select
                   value={frequency}
                   onChange={(e) => setFrequency(Number(e.target.value))}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white font-medium"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1e2433] border border-gray-200 dark:border-[#4a6fa5] rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 dark:text-white font-medium"
                 >
                   <option value={1}>Annually (1/yr)</option>
                   <option value={2}>Semi-Annually (2/yr)</option>
@@ -231,15 +231,15 @@ export default function CompoundCalculatorPage() {
 
             {/* Top Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">Initial Amount</p>
+              <div className="bg-white dark:bg-[#252d3d] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-[#4a6fa5] flex flex-col justify-center">
+                <p className="text-sm text-gray-500 dark:text-slate-400 font-medium mb-1">Initial Amount</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {formatCurrency(principal)}
                 </p>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1 flex items-center justify-between">
+              <div className="bg-white dark:bg-[#252d3d] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-[#4a6fa5] flex flex-col justify-center">
+                <p className="text-sm text-gray-500 dark:text-slate-400 font-medium mb-1 flex items-center justify-between">
                   Compounded Value
                   <span className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded-full font-bold">
                     +{formatCurrency(totalInterest)}
@@ -265,7 +265,7 @@ export default function CompoundCalculatorPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
               {/* Area Chart */}
-              <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="lg:col-span-2 bg-white dark:bg-[#252d3d] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-[#4a6fa5]">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Growth Over Time</h3>
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -326,7 +326,7 @@ export default function CompoundCalculatorPage() {
               </div>
 
               {/* Pie Chart */}
-              <div className="lg:col-span-1 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center relative">
+              <div className="lg:col-span-1 bg-white dark:bg-[#252d3d] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-[#4a6fa5] flex flex-col items-center justify-center relative">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 self-start w-full text-left">Distribution</h3>
                 <div className="h-[200px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -359,7 +359,7 @@ export default function CompoundCalculatorPage() {
                     <div key={entry.name} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index] }}></div>
-                        <span className="text-gray-600 dark:text-gray-400">{entry.name}</span>
+                        <span className="text-gray-600 dark:text-slate-400">{entry.name}</span>
                       </div>
                       <span className="font-medium text-gray-900 dark:text-white">
                         {((entry.value / finalAmount) * 100).toFixed(1)}%
@@ -372,13 +372,13 @@ export default function CompoundCalculatorPage() {
             </div>
 
             {/* Dynamic Interval Table Section */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mt-6">
+            <div className="bg-white dark:bg-[#252d3d] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-[#4a6fa5] mt-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
                   {frequency === 1 ? "Yearly Breakdown" : frequency === 12 ? "Monthly Breakdown" : frequency === 4 ? "Quarterly Breakdown" : frequency === 365 ? "Daily Breakdown" : frequency === 52 ? "Weekly Breakdown" : "Interval Breakdown"}
                 </h3>
                 <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    <table className="w-full text-left text-sm text-gray-600 dark:text-gray-400">
-                        <thead className="text-xs uppercase bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 sticky top-0 z-10">
+                    <table className="w-full text-left text-sm text-gray-600 dark:text-slate-400">
+                        <thead className="text-xs uppercase bg-gray-50 dark:bg-[#2d3748] text-gray-700 dark:text-slate-300 sticky top-0 z-10">
                             <tr>
                                 <th className="px-4 py-3 rounded-tl-lg">
                                   {frequency === 1 ? "Year" : frequency === 12 ? "Month" : frequency === 4 ? "Quarter" : frequency === 365 ? "Day" : frequency === 52 ? "Week" : "Period"}
@@ -392,7 +392,7 @@ export default function CompoundCalculatorPage() {
                             {chartData.map((row, idx) => {
                                 const isLastRow = idx === chartData.length - 1;
                                 return (
-                                    <tr key={idx} className={`border-b dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${isLastRow ? 'bg-gray-50 dark:bg-gray-700/30' : ''}`}>
+                                    <tr key={idx} className={`border-b dark:border-[#4a6fa5] last:border-0 hover:bg-gray-50 dark:hover:bg-[#2d3748]/50 transition-colors ${isLastRow ? 'bg-gray-50 dark:bg-[#2d3748]/30' : ''}`}>
                                         <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{row.periodLabel}</td>
                                         <td className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">
                                             {row.earnedThisPeriod === 0 ? "–" : `+${formatCurrency(row.earnedThisPeriod)}`}

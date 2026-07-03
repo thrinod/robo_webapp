@@ -251,7 +251,7 @@ export default function WatchlistPage() {
     const fmt = (n: number) => n?.toFixed(2) ?? "-";
 
     const SortHeader = ({ id, label, align = "right" }: { id: SortKey, label: string, align?: "left" | "right" | "center" }) => (
-        <TableCell align={align} className="font-bold dark:bg-gray-700 dark:text-gray-200 p-2">
+        <TableCell align={align} className="font-bold dark:bg-[#2d3748] dark:text-slate-200 p-2">
             <TableSortLabel
                 active={sortConfig.key === id}
                 direction={sortConfig.key === id ? sortConfig.direction : 'asc'}
@@ -263,7 +263,7 @@ export default function WatchlistPage() {
     );
 
     return (
-        <div className="p-4 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div className="p-4 bg-gray-50 dark:bg-[#1e2433] min-h-screen">
             {/* Multi-Watchlist Tabs */}
             <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
                 <Tabs value={activeTab} onChange={(e, n) => setActiveTab(n)} variant="scrollable" scrollButtons="auto">
@@ -276,7 +276,7 @@ export default function WatchlistPage() {
             {/* Toolbar */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-2xl font-bold dark:text-gray-100 flex items-center gap-2">
+                    <h1 className="text-2xl font-bold dark:text-slate-100 flex items-center gap-2">
                         Watchlist {watchlistId}
                         <Tooltip title="Rich watchlist with indicator processing.">
                             <Info className="w-4 h-4 text-gray-400 cursor-help" />
@@ -289,7 +289,7 @@ export default function WatchlistPage() {
 
                 <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
                     {/* Search & Add */}
-                    <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-1.5 rounded-lg border dark:border-gray-700">
+                    <div className="flex items-center gap-2 bg-white dark:bg-[#252d3d] p-1.5 rounded-lg border dark:border-[#4a6fa5]">
                         <FormControl size="small" sx={{ width: 130 }}>
                             <InputLabel>Type</InputLabel>
                             <MuiSelect
@@ -373,7 +373,7 @@ export default function WatchlistPage() {
                             </Button>
                         )}
 
-                        <div className="flex items-center gap-1 bg-gray-200 dark:bg-gray-800 px-2 py-1.5 rounded-md border dark:border-gray-700">
+                        <div className="flex items-center gap-1 bg-gray-200 dark:bg-[#252d3d] px-2 py-1.5 rounded-md border dark:border-[#4a6fa5]">
                             <Clock size={16} className="text-gray-500" />
                             <Tooltip title="Polling Interval (seconds). Min 5s.">
                                 <Input
@@ -397,18 +397,18 @@ export default function WatchlistPage() {
             </div>
 
             {/* Table (Replicated Scanner Structure) */}
-            <TableContainer component={Paper} className="shadow-md rounded-lg overflow-hidden dark:bg-gray-800">
+            <TableContainer component={Paper} className="shadow-md rounded-lg overflow-hidden dark:bg-[#252d3d]">
                 <Table size="small" stickyHeader>
                     <TableHead>
                         <TableRow>
                             <SortHeader id="name" label="Instrument" align="left" />
                             <SortHeader id="ltp" label="LTP" />
                             <SortHeader id="change" label="Chg %" />
-                            <TableCell align="right" className="font-bold dark:bg-gray-700 dark:text-gray-200" style={{ minWidth: 55 }}>D-1</TableCell>
-                            <TableCell align="right" className="font-bold dark:bg-gray-700 dark:text-gray-200" style={{ minWidth: 55 }}>D-2</TableCell>
-                            <TableCell align="right" className="font-bold dark:bg-gray-700 dark:text-gray-200" style={{ minWidth: 55 }}>D-3</TableCell>
-                            <TableCell align="right" className="font-bold dark:bg-gray-700 dark:text-gray-200" style={{ minWidth: 55 }}>D-4</TableCell>
-                            <TableCell align="right" className="font-bold dark:bg-gray-700 dark:text-gray-200" style={{ minWidth: 55 }}>D-5</TableCell>
+                            <TableCell align="right" className="font-bold dark:bg-[#2d3748] dark:text-slate-200" style={{ minWidth: 55 }}>D-1</TableCell>
+                            <TableCell align="right" className="font-bold dark:bg-[#2d3748] dark:text-slate-200" style={{ minWidth: 55 }}>D-2</TableCell>
+                            <TableCell align="right" className="font-bold dark:bg-[#2d3748] dark:text-slate-200" style={{ minWidth: 55 }}>D-3</TableCell>
+                            <TableCell align="right" className="font-bold dark:bg-[#2d3748] dark:text-slate-200" style={{ minWidth: 55 }}>D-4</TableCell>
+                            <TableCell align="right" className="font-bold dark:bg-[#2d3748] dark:text-slate-200" style={{ minWidth: 55 }}>D-5</TableCell>
                             <SortHeader id="change_7d" label="7D" />
                             <SortHeader id="change_30d" label="30D" />
                             <SortHeader id="rsi" label="RSI" />
@@ -418,12 +418,12 @@ export default function WatchlistPage() {
                             <SortHeader id="stoch_k" label="Stoch" />
                             <SortHeader id="dmp" label="DMI" />
                             <SortHeader id="macd_hist" label="MACD" />
-                            <TableCell align="right" className="font-bold dark:bg-gray-700 dark:text-gray-200">Bollinger</TableCell>
+                            <TableCell align="right" className="font-bold dark:bg-[#2d3748] dark:text-slate-200">Bollinger</TableCell>
                             <SortHeader id="s1" label="S1" />
                             <SortHeader id="r1" label="R1" />
                             <SortHeader id="s2" label="S2" />
                             <SortHeader id="r2" label="R2" />
-                            <TableCell align="center" className="font-bold dark:bg-gray-700 p-2">Del</TableCell>
+                            <TableCell align="center" className="font-bold dark:bg-[#2d3748] p-2">Del</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -438,11 +438,11 @@ export default function WatchlistPage() {
                             const hasData = !!data;
 
                             return (
-                                <TableRow key={item.instrument_key} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <TableRow key={item.instrument_key} className="hover:bg-gray-50 dark:hover:bg-[#2d3748]">
                                     <TableCell>
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-medium dark:text-gray-100">{item.name || item.trading_symbol || item.instrument_key}</span>
+                                                <span className="font-medium dark:text-slate-100">{item.name || item.trading_symbol || item.instrument_key}</span>
                                                 {item.trading_symbol && (
                                                     <a
                                                         href={`https://www.screener.in/company/${item.trading_symbol.replace(/-EQ$/i, '')}/`}
@@ -459,7 +459,7 @@ export default function WatchlistPage() {
                                             <span className="text-[10px] text-gray-400">{item.instrument_key.split('|')[0]}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell align="right" className="font-mono dark:text-gray-200">{hasData ? fmt(ltp) : '-'}</TableCell>
+                                    <TableCell align="right" className="font-mono dark:text-slate-200">{hasData ? fmt(ltp) : '-'}</TableCell>
                                     <TableCell align="right">
                                         {hasData ? (
                                             <div className={`text-xs ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -472,7 +472,7 @@ export default function WatchlistPage() {
                                         <TableCell key={idx} align="right">
                                             {hasData && data?.daily_changes?.[idx]?.pct != null ? (
                                                 <div className="flex flex-col items-end text-[10px] font-mono">
-                                                    <span className="dark:text-gray-200">{fmt(data.daily_changes[idx].close)}</span>
+                                                    <span className="dark:text-slate-200">{fmt(data.daily_changes[idx].close)}</span>
                                                     <span className={data.daily_changes[idx].pct >= 0 ? 'text-green-600' : 'text-red-600'}>
                                                         {data.daily_changes[idx].pct.toFixed(2)}%
                                                     </span>
@@ -483,7 +483,7 @@ export default function WatchlistPage() {
                                     <TableCell align="right">
                                         {hasData && data?.change_7d != null ? (
                                             <div className="flex flex-col items-end text-[10px] font-mono">
-                                                <span className="dark:text-gray-200">{fmt(data.close_7d)}</span>
+                                                <span className="dark:text-slate-200">{fmt(data.close_7d)}</span>
                                                 <span className={data.change_7d >= 0 ? 'text-green-600' : 'text-red-600'}>
                                                     {data.change_7d.toFixed(2)}%
                                                 </span>
@@ -493,7 +493,7 @@ export default function WatchlistPage() {
                                     <TableCell align="right">
                                         {hasData && data?.change_30d != null ? (
                                             <div className="flex flex-col items-end text-[10px] font-mono">
-                                                <span className="dark:text-gray-200">{fmt(data.close_30d)}</span>
+                                                <span className="dark:text-slate-200">{fmt(data.close_30d)}</span>
                                                 <span className={data.change_30d >= 0 ? 'text-green-600' : 'text-red-600'}>
                                                     {data.change_30d.toFixed(2)}%
                                                 </span>
@@ -501,12 +501,12 @@ export default function WatchlistPage() {
                                         ) : '-'}
                                     </TableCell>
 
-                                    <TableCell align="right" className={`font-bold ${indicators.rsi > 70 ? 'text-red-500' : indicators.rsi < 30 ? 'text-green-500' : 'dark:text-gray-200'}`}>
+                                    <TableCell align="right" className={`font-bold ${indicators.rsi > 70 ? 'text-red-500' : indicators.rsi < 30 ? 'text-green-500' : 'dark:text-slate-200'}`}>
                                         {hasData ? fmt(indicators.rsi) : '-'}
                                     </TableCell>
-                                    <TableCell align="right" className="font-mono dark:text-gray-300">{hasData ? fmt(indicators.adx) : '-'}</TableCell>
+                                    <TableCell align="right" className="font-mono dark:text-slate-300">{hasData ? fmt(indicators.adx) : '-'}</TableCell>
 
-                                    <TableCell align="right" className="font-mono dark:text-gray-300">
+                                    <TableCell align="right" className="font-mono dark:text-slate-300">
                                         {hasData ? (
                                             <div className="flex flex-col items-end text-[10px]">
                                                 <span>{fmt(indicators.sma_50)}</span>
@@ -516,7 +516,7 @@ export default function WatchlistPage() {
                                             </div>
                                         ) : '-'}
                                     </TableCell>
-                                    <TableCell align="right" className="font-mono dark:text-gray-300">
+                                    <TableCell align="right" className="font-mono dark:text-slate-300">
                                         {hasData ? (
                                             <div className="flex flex-col items-end text-[10px]">
                                                 <span>{fmt(indicators.sma_200)}</span>
@@ -551,8 +551,8 @@ export default function WatchlistPage() {
                                     <TableCell align="right">
                                         {hasData ? (
                                             <div className="flex flex-col text-[10px] items-end">
-                                                <span className="text-gray-500 dark:text-gray-400">M: {fmt(indicators.macd)}</span>
-                                                <span className="text-gray-500 dark:text-gray-400">S: {fmt(indicators.macd_signal)}</span>
+                                                <span className="text-gray-500 dark:text-slate-400">M: {fmt(indicators.macd)}</span>
+                                                <span className="text-gray-500 dark:text-slate-400">S: {fmt(indicators.macd_signal)}</span>
                                                 <span className={`font-bold ${indicators.macd_hist >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                                     H: {fmt(indicators.macd_hist)}
                                                 </span>
@@ -564,9 +564,9 @@ export default function WatchlistPage() {
                                     <TableCell align="right">
                                         {hasData ? (
                                             <div className="flex flex-col gap-0.5 items-end text-[10px]">
-                                                <span className="text-gray-400">U: <span className="text-gray-600 dark:text-gray-300">{fmt(indicators.bb_upper)}</span></span>
-                                                <span className="text-gray-400">M: <span className="text-gray-600 dark:text-gray-300">{fmt(indicators.bb_middle)}</span></span>
-                                                <span className="text-gray-400">L: <span className="text-gray-600 dark:text-gray-300">{fmt(indicators.bb_lower)}</span></span>
+                                                <span className="text-gray-400">U: <span className="text-gray-600 dark:text-slate-300">{fmt(indicators.bb_upper)}</span></span>
+                                                <span className="text-gray-400">M: <span className="text-gray-600 dark:text-slate-300">{fmt(indicators.bb_middle)}</span></span>
+                                                <span className="text-gray-400">L: <span className="text-gray-600 dark:text-slate-300">{fmt(indicators.bb_lower)}</span></span>
                                             </div>
                                         ) : '-'}
                                     </TableCell>

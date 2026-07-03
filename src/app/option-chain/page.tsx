@@ -39,6 +39,9 @@ export default function OptionChain() {
 
     const [selectedItems, setSelectedItems] = useState<Record<string, any>>({});
     const [lots, setLots] = useState(1);
+    const [capital, setCapital] = useState<number>(50000);
+    const [useCapitalEngine, setUseCapitalEngine] = useState<boolean>(true);
+    const [mounted, setMounted] = useState(false);
 
     const [funds, setFunds] = useState<any>(null);
     const [positions, setPositions] = useState<any[]>([]);
@@ -71,6 +74,24 @@ export default function OptionChain() {
     const [stopLevelBear, setStopLevelBear] = useState<string>("");
     const [isMonitoringBear, setIsMonitoringBear] = useState(false);
     const [selectedPositionsBear, setSelectedPositionsBear] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        setMounted(true);
+        if (typeof window !== "undefined") {
+            const storedCapital = localStorage.getItem("rest_capital");
+            if (storedCapital) setCapital(parseFloat(storedCapital));
+
+            const storedUseCapital = localStorage.getItem("rest_use_capital");
+            if (storedUseCapital) setUseCapitalEngine(storedUseCapital === "true");
+        }
+    }, []);
+
+    useEffect(() => {
+        if (mounted) {
+            localStorage.setItem("rest_capital", capital.toString());
+            localStorage.setItem("rest_use_capital", useCapitalEngine.toString());
+        }
+    }, [capital, useCapitalEngine, mounted]);
 
     useEffect(() => {
         loadExpiries();
@@ -322,6 +343,26 @@ export default function OptionChain() {
         return positions.find(p => p.instrument_token === key || p.instrument_key === key);
     }, [positions]);
 
+    const getCalculatedQty = useCallback((itemKey: string, transactionType: string, ltp: number) => {
+        const lotSize = selectedItems[itemKey]?.lot_size || getLotSize(index);
+
+        if (!useCapitalEngine || transactionType !== 'BUY') {
+            return Math.max(1, lots) * lotSize;
+        }
+
+        const buyKeys = Object.keys(selectedItems).filter(k => k.endsWith('_BUY'));
+        const count = buyKeys.length;
+        if (count === 0) return lotSize;
+
+        const allocatedCapital = capital / count;
+        if (ltp <= 0) return lotSize;
+
+        const maxQty = Math.floor(allocatedCapital / ltp);
+        const calculatedLots = Math.floor(maxQty / lotSize);
+
+        return Math.max(1, calculatedLots) * lotSize;
+    }, [selectedItems, capital, useCapitalEngine, lots, index]);
+
     const getLotSize = (idx: string) => {
         if (idx.includes('Nifty 50')) return 65; // Updated check
         if (idx.includes('Nifty Bank')) return 30; // 
@@ -331,7 +372,7 @@ export default function OptionChain() {
         if (idx.includes('BANKEX')) return 30; // 
         // Fallback or more robust check
         if (idx.toLowerCase().includes('banknifty') || idx.toLowerCase().includes('nifty bank')) return 30;
-        if (idx.toLowerCase().includes('nifty') && !idx.toLowerCase().includes('fin') && !idx.toLowerCase().includes('mid')) return 75;
+        if (idx.toLowerCase().includes('nifty') && !idx.toLowerCase().includes('fin') && !idx.toLowerCase().includes('mid')) return 65;
         return 50;
     };
 
@@ -355,8 +396,8 @@ export default function OptionChain() {
                 delete next[key];
             } else {
                 const lotSize = item.lot_size || getLotSize(index);
-                // Auto Lot Logic
-                if (type === 'BUY' && item.last_price > 0 && Object.keys(prev).length === 0) {
+                // Auto Lot Logic (only when capital engine is disabled)
+                if (!useCapitalEngine && type === 'BUY' && item.last_price > 0 && Object.keys(prev).length === 0) {
                     const available = funds?.available_margin || funds?._available_margin || funds?.net || 0;
                     if (available > 0) {
                         const pricePerLot = item.last_price * lotSize;
@@ -402,8 +443,8 @@ export default function OptionChain() {
         const freezeLimit = getFreezeLimit(index);
         const orders: any[] = [];
 
-        Object.values(selectedItems).forEach((item: any) => {
-            const totalQty = Math.floor((item.lot_size || getLotSize(index)) * lots);
+        Object.entries(selectedItems).forEach(([key, item]: [string, any]) => {
+            const totalQty = getCalculatedQty(key, item.transaction_type, item.last_price || 0);
             const isLimit = !!item.limit_price && parseFloat(item.limit_price) > 0;
             const commonOrder = {
                 instrument_key: item.instrument_key,
@@ -546,16 +587,16 @@ export default function OptionChain() {
     return (
         <div className="p-4 max-w-7xl mx-auto space-y-4 pb-20">
             {/* Controls */}
-            <Paper className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-center shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700">
+            <Paper className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-center shadow-sm bg-white dark:bg-[#1e2433] dark:border-[#4a6fa5]">
                 <FormControl size="small" fullWidth>
-                    <InputLabel className="dark:text-gray-400">Index</InputLabel>
+                    <InputLabel className="dark:text-slate-400">Index</InputLabel>
                     <Select value={index} label="Index" onChange={(e) => setIndex(e.target.value)} className="dark:text-white">
                         {INDICES.map(idx => <MenuItem key={idx.value} value={idx.value}>{idx.label}</MenuItem>)}
                     </Select>
                 </FormControl>
 
                 <FormControl size="small" fullWidth>
-                    <InputLabel className="dark:text-gray-400">Expiry</InputLabel>
+                    <InputLabel className="dark:text-slate-400">Expiry</InputLabel>
                     <Select value={expiry} label="Expiry" onChange={(e) => setExpiry(e.target.value)} className="dark:text-white">
                         {expiryDates.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
                     </Select>
@@ -567,7 +608,7 @@ export default function OptionChain() {
                     </Button>
                     <FormControlLabel
                         control={<Switch size="small" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />}
-                        label={<span className="text-sm dark:text-gray-200">Auto</span>}
+                        label={<span className="text-sm dark:text-slate-200">Auto</span>}
                     />
                     {autoRefresh && (
                         <TextField
@@ -577,7 +618,7 @@ export default function OptionChain() {
                             value={chainRefreshInterval}
                             onChange={(e) => setChainRefreshInterval(Math.max(1, parseInt(e.target.value) || 1))}
                             InputProps={{ inputProps: { min: 1, style: { width: '50px' } } }}
-                            className="dark:bg-gray-700 rounded"
+                            className="dark:bg-[#252d3d] rounded"
                             variant="outlined"
                         />
                     )}
@@ -595,9 +636,9 @@ export default function OptionChain() {
 
             {/* Metrics & Info */}
             <div className="grid grid-cols-2 md:grid-cols-7 gap-2">
-                <Paper className="p-2 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 flex flex-col justify-center items-center">
-                    <Typography variant="caption" color="textSecondary" className="dark:text-gray-400">Funds</Typography>
-                    <Typography variant="subtitle2" className="font-bold text-gray-800 dark:text-gray-200">
+                <Paper className="p-2 bg-gray-50 dark:bg-[#1e2433] dark:border-[#4a6fa5] flex flex-col justify-center items-center">
+                    <Typography variant="caption" color="textSecondary" className="dark:text-slate-400">Funds</Typography>
+                    <Typography variant="subtitle2" className="font-bold text-gray-800 dark:text-slate-200">
                         ₹{(funds?.available_margin || funds?._available_margin || funds?.net || 0).toLocaleString()}
                     </Typography>
                 </Paper>
@@ -660,7 +701,7 @@ export default function OptionChain() {
             <Paper className={clsx("p-4 border", isPaper ? "border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:border-purple-800" : "border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800")}>
                 <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center gap-4">
-                        <Typography variant="subtitle1" fontWeight="bold" className={clsx("dark:text-gray-100", isPaper && "text-purple-700 dark:text-purple-300")}>
+                        <Typography variant="subtitle1" fontWeight="bold" className={clsx("dark:text-slate-100", isPaper && "text-purple-700 dark:text-purple-300")}>
                             {isPaper ? "Mock Positions" : "Open Positions"} ({positions.length})
                         </Typography>
                         <Typography variant="subtitle2" className={clsx("font-bold", totalPnL >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
@@ -668,12 +709,12 @@ export default function OptionChain() {
                         </Typography>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 bg-white/50 dark:bg-gray-800/50 px-2 py-1 rounded border dark:border-gray-700">
+                        <div className="flex items-center gap-1 bg-white/50 dark:bg-[#1e2433]/50 px-2 py-1 rounded border dark:border-[#4a6fa5]">
                             <Clock size={14} className="text-gray-500" />
                             <Tooltip title="Position Refresh Interval (seconds)">
                                 <input
                                     type="number"
-                                    className="w-12 bg-transparent text-xs outline-none dark:text-gray-200"
+                                    className="w-12 bg-transparent text-sm outline-none dark:text-slate-200"
                                     value={posRefreshInterval}
                                     min={1}
                                     onChange={(e) => setPosRefreshInterval(parseInt(e.target.value) || 1)}
@@ -682,12 +723,12 @@ export default function OptionChain() {
                         </div>
                         <FormControlLabel
                             control={<Switch size="small" checked={autoRefreshPositions} onChange={e => setAutoRefreshPositions(e.target.checked)} />}
-                            label={<span className="text-xs dark:text-gray-200">Auto</span>}
+                            label={<span className="text-sm dark:text-slate-200">Auto</span>}
                         />
                         <Button size="small" onClick={() => fetchPositions()}>Refresh</Button>
                         <FormControlLabel
                             control={<Switch size="small" checked={showClosedPositions} onChange={e => setShowClosedPositions(e.target.checked)} />}
-                            label={<span className="text-xs dark:text-gray-200">Show Closed</span>}
+                            label={<span className="text-sm dark:text-slate-200">Show Closed</span>}
                         />
                     </div>
                 </div>
@@ -696,7 +737,7 @@ export default function OptionChain() {
                 <div className="flex flex-col gap-2 mb-2">
                     <div className="flex items-center gap-4 mb-1">
                         <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                            <span className="text-sm font-bold text-gray-700 dark:text-slate-300">
                                 {INDICES.find(i => i.value === index)?.label || "Index"}:
                             </span>
                             <span className="font-bold text-2xl text-blue-600 dark:text-blue-400">
@@ -712,14 +753,14 @@ export default function OptionChain() {
                                 const val = parseInt(e.target.value);
                                 setMonitorInterval(val > 0 ? val : 1);
                             }}
-                            className="w-24 bg-white dark:bg-gray-800"
+                            className="w-24 bg-white dark:bg-[#1e2433]"
                             InputProps={{ className: "dark:text-white" }}
-                            InputLabelProps={{ className: "dark:text-gray-300" }}
+                            InputLabelProps={{ className: "dark:text-slate-300" }}
                             inputProps={{ min: 1 }}
                         />
                         <FormControlLabel
                             control={<Switch size="small" checked={isSpotPolling} onChange={e => setIsSpotPolling(e.target.checked)} />}
-                            label={<span className="text-xs dark:text-gray-300">Poll</span>}
+                            label={<span className="text-sm dark:text-slate-300">Poll</span>}
                         />
                     </div>
 
@@ -733,9 +774,9 @@ export default function OptionChain() {
                                 value={targetLevelBull}
                                 onChange={(e) => setTargetLevelBull(e.target.value)}
                                 type="number"
-                                className="w-24 bg-white dark:bg-gray-800"
+                                className="w-24 bg-white dark:bg-[#1e2433]"
                                 InputProps={{ className: "dark:text-white" }}
-                                InputLabelProps={{ className: "dark:text-gray-300" }}
+                                InputLabelProps={{ className: "dark:text-slate-300" }}
                             />
                             <TextField
                                 size="small"
@@ -743,9 +784,9 @@ export default function OptionChain() {
                                 value={stopLevelBull}
                                 onChange={(e) => setStopLevelBull(e.target.value)}
                                 type="number"
-                                className="w-24 bg-white dark:bg-gray-800"
+                                className="w-24 bg-white dark:bg-[#1e2433]"
                                 InputProps={{ className: "dark:text-white" }}
-                                InputLabelProps={{ className: "dark:text-gray-300" }}
+                                InputLabelProps={{ className: "dark:text-slate-300" }}
                             />
                             <FormControlLabel
                                 control={
@@ -756,7 +797,7 @@ export default function OptionChain() {
                                         color="success"
                                     />
                                 }
-                                label={<span className={clsx("whitespace-nowrap text-xs font-bold", isMonitoringBull ? "text-green-600 dark:text-green-400" : "text-gray-500")}>{isMonitoringBull ? "ON" : "OFF"}</span>}
+                                label={<span className={clsx("whitespace-nowrap text-sm font-bold", isMonitoringBull ? "text-green-600 dark:text-green-400" : "text-gray-500")}>{isMonitoringBull ? "ON" : "OFF"}</span>}
                             />
                         </div>
 
@@ -769,9 +810,9 @@ export default function OptionChain() {
                                 value={targetLevelBear}
                                 onChange={(e) => setTargetLevelBear(e.target.value)}
                                 type="number"
-                                className="w-24 bg-white dark:bg-gray-800"
+                                className="w-24 bg-white dark:bg-[#1e2433]"
                                 InputProps={{ className: "dark:text-white" }}
-                                InputLabelProps={{ className: "dark:text-gray-300" }}
+                                InputLabelProps={{ className: "dark:text-slate-300" }}
                             />
                             <TextField
                                 size="small"
@@ -779,9 +820,9 @@ export default function OptionChain() {
                                 value={stopLevelBear}
                                 onChange={(e) => setStopLevelBear(e.target.value)}
                                 type="number"
-                                className="w-24 bg-white dark:bg-gray-800"
+                                className="w-24 bg-white dark:bg-[#1e2433]"
                                 InputProps={{ className: "dark:text-white" }}
-                                InputLabelProps={{ className: "dark:text-gray-300" }}
+                                InputLabelProps={{ className: "dark:text-slate-300" }}
                             />
                             <FormControlLabel
                                 control={
@@ -792,22 +833,22 @@ export default function OptionChain() {
                                         color="error"
                                     />
                                 }
-                                label={<span className={clsx("whitespace-nowrap text-xs font-bold", isMonitoringBear ? "text-red-600 dark:text-red-400" : "text-gray-500")}>{isMonitoringBear ? "ON" : "OFF"}</span>}
+                                label={<span className={clsx("whitespace-nowrap text-sm font-bold", isMonitoringBear ? "text-red-600 dark:text-red-400" : "text-gray-500")}>{isMonitoringBear ? "ON" : "OFF"}</span>}
                             />
                         </div>
                     </div>
                 </div>
 
                 {positions.length === 0 ? (
-                    <Typography variant="body2" className="text-gray-500 dark:text-gray-400 italic text-center py-2">No open positions</Typography>
+                    <Typography variant="body2" className="text-gray-500 dark:text-slate-400 italic text-center py-2">No open positions</Typography>
                 ) : (
-                    <div className="grid grid-rows-2 grid-flow-col gap-2 overflow-x-auto pb-2 p-1 border dark:border-gray-700 rounded bg-white dark:bg-gray-900 border-gray-200">
+                    <div className="grid grid-rows-2 grid-flow-col gap-2 overflow-x-auto pb-2 p-1 border dark:border-[#4a6fa5] rounded bg-white dark:bg-[#0f1419] border-gray-200">
                         {positions
                             .filter(p => showClosedPositions || p.quantity !== 0)
                             .map((p: any, idx) => (
-                                <div key={idx} className="min-w-[280px] p-1 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 flex items-center gap-2 text-xs transition-colors bg-white dark:bg-gray-800">
+                                <div key={idx} className="min-w-[280px] p-1 border border-gray-200 dark:border-[#4a6fa5] rounded hover:bg-gray-50 dark:hover:bg-[#1e2433]/50 flex items-center gap-2 text-sm transition-colors bg-white dark:bg-[#1e2433]">
                                     {/* Checkboxes Group - Leftmost */}
-                                    <div className="flex flex-col gap-0 px-0.5 border-r border-gray-200 dark:border-gray-700 pr-1 mr-1">
+                                    <div className="flex flex-col gap-0 px-0.5 border-r border-gray-200 dark:border-[#4a6fa5] pr-1 mr-1">
                                         <div className="flex items-center gap-1">
                                             <Checkbox
                                                 size="small"
@@ -816,7 +857,7 @@ export default function OptionChain() {
                                                 checked={selectedPositionsBull.has(isPaper ? p.trade_id : (p.instrument_key || p.instrument_token))}
                                                 onChange={() => toggleMonitorSelection(isPaper ? p.trade_id : (p.instrument_key || p.instrument_token), "BULL")}
                                             />
-                                            <span className="font-bold text-green-700 dark:text-green-400 text-[10px]">B</span>
+                                            <span className="font-bold text-green-700 dark:text-green-400 text-sm">B</span>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Checkbox
@@ -826,19 +867,19 @@ export default function OptionChain() {
                                                 checked={selectedPositionsBear.has(isPaper ? p.trade_id : (p.instrument_key || p.instrument_token))}
                                                 onChange={() => toggleMonitorSelection(isPaper ? p.trade_id : (p.instrument_key || p.instrument_token), "BEAR")}
                                             />
-                                            <span className="font-bold text-red-700 dark:text-red-400 text-[10px]">B</span>
+                                            <span className="font-bold text-red-700 dark:text-red-400 text-sm">B</span>
                                         </div>
                                     </div>
 
                                     {/* Symbol and Prices - Middle */}
                                     <div className="flex-1 flex flex-col gap-0 overflow-hidden min-w-0">
                                         <div className="flex items-center justify-between">
-                                            <span className="font-bold dark:text-gray-200 truncate" title={p.trading_symbol}>{p.trading_symbol}</span>
+                                            <span className="font-bold dark:text-slate-200 truncate" title={p.trading_symbol}>{p.trading_symbol}</span>
                                             <span className={clsx("font-bold whitespace-nowrap", p.quantity > 0 ? "text-green-600 dark:text-green-400" : "text-gray-500")}>
                                                 {p.quantity}Q
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 whitespace-nowrap text-[10px]">
+                                        <div className="flex items-center gap-2 text-gray-500 dark:text-slate-400 whitespace-nowrap text-sm">
                                             <span>@{p.average_price?.toFixed(1) || '0'}</span>
                                             <span>L:{p.last_price?.toFixed(1)}</span>
                                         </div>
@@ -887,36 +928,74 @@ export default function OptionChain() {
             </Paper>
 
             {/* Action Bar */}
-            <Paper className={clsx("p-3 border flex justify-between items-center sticky top-20 z-40", isPaper ? "bg-purple-100 border-purple-300 dark:bg-purple-900 dark:border-purple-700" : "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800")}>
-                <div className="flex items-center gap-4">
-                    <Typography variant="subtitle1" fontWeight="bold" className="dark:text-gray-100">
-                        {Object.keys(selectedItems).length} Orders Selected {isPaper && "(Paper)"}
-                    </Typography>
-                    <TextField
-                        size="small"
-                        label="Lots"
-                        type="number"
-                        value={lots}
-                        onChange={(e) => setLots(parseInt(e.target.value) || 1)}
-                        className="w-24 bg-white dark:bg-gray-800"
-                        InputProps={{ className: "dark:text-white" }}
-                        InputLabelProps={{ className: "dark:text-gray-300" }}
-                        inputProps={{ min: 1 }}
-                    />
-                </div>
-                <Button
-                    variant="contained"
-                    color={isPaper ? "secondary" : "warning"}
-                    startIcon={<Zap />}
-                    onClick={handlePlaceOrder}
-                    disabled={Object.keys(selectedItems).length === 0}
-                >
-                    {isPaper ? "Paper Trade" : "Execute Bulk Order"}
-                </Button>
-            </Paper>
+            <div className="sticky top-20 z-40 space-y-2 mb-4">
+                <Paper className={clsx("p-3 border flex justify-between items-center", isPaper ? "bg-purple-100 border-purple-300 dark:bg-purple-900 dark:border-purple-700" : "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800")}>
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <Typography variant="subtitle1" fontWeight="bold" className="dark:text-slate-100">
+                            {Object.keys(selectedItems).length} Orders Selected {isPaper && "(Paper)"}
+                        </Typography>
+                        <FormControlLabel
+                            control={<Switch size="small" checked={useCapitalEngine} onChange={(e) => setUseCapitalEngine(e.target.checked)} />}
+                            label={<span className="text-sm dark:text-slate-200 font-bold">Auto Capital</span>}
+                        />
+                        {useCapitalEngine ? (
+                            <TextField
+                                size="small"
+                                label="Capital Allocation (₹)"
+                                type="number"
+                                value={capital}
+                                onChange={(e) => setCapital(Math.max(1000, parseFloat(e.target.value) || 0))}
+                                className="w-40 bg-white dark:bg-[#1e2433]"
+                                InputProps={{ className: "dark:text-white" }}
+                                InputLabelProps={{ className: "dark:text-slate-300" }}
+                                inputProps={{ min: 1000 }}
+                            />
+                        ) : (
+                            <TextField
+                                size="small"
+                                label="Lots"
+                                type="number"
+                                value={lots}
+                                onChange={(e) => setLots(parseInt(e.target.value) || 1)}
+                                className="w-24 bg-white dark:bg-[#1e2433]"
+                                InputProps={{ className: "dark:text-white" }}
+                                InputLabelProps={{ className: "dark:text-slate-300" }}
+                                inputProps={{ min: 1 }}
+                            />
+                        )}
+                    </div>
+                    <Button
+                        variant="contained"
+                        color={isPaper ? "secondary" : "warning"}
+                        startIcon={<Zap />}
+                        onClick={handlePlaceOrder}
+                        disabled={Object.keys(selectedItems).length === 0}
+                    >
+                        {isPaper ? "Paper Trade" : "Execute Bulk Order"}
+                    </Button>
+                </Paper>
 
-            {/* Chain Table */}
-            <TableContainer component={Paper} className="max-h-[70vh] bg-white dark:bg-gray-800">
+                {Object.keys(selectedItems).length > 0 && (
+                    <Paper className="p-3 bg-gray-50 dark:bg-[#0f1419] border border-gray-200 dark:border-[#364f6b] text-sm rounded-xl space-y-1.5 max-h-[150px] overflow-y-auto">
+                        <div className="font-extrabold text-gray-500 dark:text-slate-400 uppercase tracking-widest text-[9px] mb-1">Calculated Order Quantities</div>
+                        {Object.entries(selectedItems).map(([key, item]: [string, any]) => {
+                            const calculatedQty = getCalculatedQty(key, item.transaction_type, item.last_price || 0);
+                            const lotSize = item.lot_size || getLotSize(index);
+                            const calculatedLots = calculatedQty / lotSize;
+                            return (
+                                <div key={key} className="flex justify-between items-center text-[9px] font-mono border-b border-gray-100 dark:border-[#364f6b] pb-1">
+                                    <span className="font-bold dark:text-slate-200">{item.name || item.trading_symbol} ({item.transaction_type})</span>
+                                    <span className="font-black text-indigo-600 dark:text-indigo-400">
+                                        Qty: {calculatedQty} ({calculatedLots} Lots) @ LTP: ₹{item.last_price || 0}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </Paper>
+                )}
+            </div>
+
+            <TableContainer component={Paper} className="max-h-[70vh] bg-white dark:bg-[#1e2433]">
                 <Table stickyHeader size="small">
                     <TableHead>
                         <TableRow>
@@ -926,45 +1005,42 @@ export default function OptionChain() {
                             {/* PE */}
                             <TableCell align="center" colSpan={7} className="bg-red-50 dark:bg-red-900/30 border-b-2 border-red-200 dark:border-red-800 dark:text-red-200">PUTS (OI: {totals.pe.toLocaleString('en-IN')})</TableCell>
                         </TableRow>
-                        <TableRow className="bg-gray-100 dark:bg-gray-900">
-                            <TableCell align="right" className="dark:text-gray-300">Delta</TableCell>
-                            <TableCell align="right" className="font-bold text-gray-700 dark:text-gray-300">OI Val</TableCell>
-                            <TableCell align="right" className="dark:text-gray-300">OI</TableCell>
-                            <TableCell align="right" className="dark:text-gray-300">Limit</TableCell>
-                            <TableCell align="right" className="dark:text-gray-300">LTP</TableCell>
-                            <TableCell align="center" className="dark:text-gray-300">Buy</TableCell>
-                            <TableCell align="center" className="dark:text-gray-300">Sell</TableCell>
+                        <TableRow className="bg-gray-100 dark:bg-[#0f1419]">
+                            <TableCell align="right" className="dark:text-slate-300">Delta</TableCell>
+                            <TableCell align="right" className="font-bold text-gray-700 dark:text-slate-300">OI Val</TableCell>
+                            <TableCell align="right" className="dark:text-slate-300">OI</TableCell>
+                            <TableCell align="right" className="dark:text-slate-300">Limit</TableCell>
+                            <TableCell align="right" className="dark:text-slate-300">LTP</TableCell>
+                            <TableCell align="center" className="dark:text-slate-300">Buy</TableCell>
+                            <TableCell align="center" className="dark:text-slate-300">Sell</TableCell>
 
-                            <TableCell align="center" className="bg-gray-200 dark:bg-gray-800 font-bold dark:text-white">Price</TableCell>
+                            <TableCell align="center" className="bg-gray-200 dark:bg-[#1e2433] font-bold dark:text-white">Price</TableCell>
 
-                            <TableCell align="center" className="dark:text-gray-300">Buy</TableCell>
-                            <TableCell align="center" className="dark:text-gray-300">Sell</TableCell>
-                            <TableCell align="right" className="dark:text-gray-300">LTP</TableCell>
-                            <TableCell align="right" className="dark:text-gray-300">Limit</TableCell>
-
-                            <TableCell align="right" className="dark:text-gray-300">OI</TableCell>
-                            <TableCell align="right" className="font-bold text-gray-700 dark:text-gray-300">OI Val</TableCell>
-                            <TableCell align="right" className="dark:text-gray-300">Delta</TableCell>
+                            <TableCell align="center" className="dark:text-slate-300">Buy</TableCell>
+                            <TableCell align="center" className="dark:text-slate-300">Sell</TableCell>
+                            <TableCell align="right" className="dark:text-slate-300">LTP</TableCell>
+                            <TableCell align="right" className="dark:text-slate-300">Limit</TableCell>
+                            <TableCell align="right" className="dark:text-slate-300">OI</TableCell>
+                            <TableCell align="right" className="font-bold text-gray-700 dark:text-slate-300">OI Val</TableCell>
+                            <TableCell align="right" className="dark:text-slate-300">Delta</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {chain.map((row: any) => {
                             const isAtm = Math.abs(row.strike - spot) < 50;
-
                             const cePos = row.ce ? getPositionByInstrumentKey(row.ce.instrument_key) : null;
                             const pePos = row.pe ? getPositionByInstrumentKey(row.pe.instrument_key) : null;
 
                             return (
-                                <TableRow key={row.strike} className={clsx(isAtm && "bg-yellow-100 dark:bg-yellow-900/30", "dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800")}>
-                                    {/* CE Data */}
-                                    <TableCell align="right" className="dark:text-gray-200">{row.ce ? row.ce.delta?.toFixed(2) : '-'}</TableCell>
-                                    <TableCell align="right" className="text-gray-600 dark:text-gray-400 text-xs">{row.ce ? formatCr(row.ce.oi_value) : ''}</TableCell>
-                                    <TableCell align="right" className="dark:text-gray-200">{row.ce ? formatOI(row.ce.open_interest) : '-'}</TableCell>
+                                <TableRow key={row.strike} className={clsx(isAtm && "bg-yellow-100 dark:bg-yellow-900/30", "dark:border-[#4a6fa5] hover:bg-gray-50 dark:hover:bg-[#1e2433]")}>
+                                    <TableCell align="right" className="dark:text-slate-200">{row.ce ? row.ce.delta?.toFixed(2) : '-'}</TableCell>
+                                    <TableCell align="right" className="text-gray-600 dark:text-slate-400 text-sm">{row.ce ? formatCr(row.ce.oi_value) : ''}</TableCell>
+                                    <TableCell align="right" className="dark:text-slate-200">{row.ce ? formatOI(row.ce.open_interest) : '-'}</TableCell>
                                     <TableCell align="right">
                                         {row.ce && (
                                             <input
                                                 type="number"
-                                                className="w-16 bg-transparent border border-gray-300 dark:border-gray-600 rounded px-1 text-right text-xs dark:text-white"
+                                                className="w-16 bg-transparent border border-gray-300 dark:border-[#4a6fa5] rounded px-1 text-right text-sm dark:text-white"
                                                 value={selectedItems[`${row.ce.instrument_key}_BUY`]?.limit_price || selectedItems[`${row.ce.instrument_key}_SELL`]?.limit_price || ""}
                                                 onChange={(e) => {
                                                     const val = e.target.value;
@@ -983,8 +1059,18 @@ export default function OptionChain() {
                                     <TableCell align="right" className="font-bold text-green-700 dark:text-green-400">
                                         {row.ce ? row.ce.last_price : '-'}
                                         {cePos && cePos.quantity > 0 && (
-                                            <div className="flex flex-col text-[10px] mt-1">
+                                            <div className="flex flex-col text-sm mt-1">
                                                 <span className="font-bold text-blue-600">Qty: {cePos.quantity}</span>
+                                            </div>
+                                        )}
+                                        {row.ce && selectedItems[`${row.ce.instrument_key}_BUY`] && (
+                                            <div className="text-[9px] text-indigo-500 font-black mt-0.5 animate-pulse">
+                                                Order: {getCalculatedQty(`${row.ce.instrument_key}_BUY`, 'BUY', row.ce.last_price)} ({getCalculatedQty(`${row.ce.instrument_key}_BUY`, 'BUY', row.ce.last_price) / (row.ce.lot_size || getLotSize(index))} L)
+                                            </div>
+                                        )}
+                                        {row.ce && selectedItems[`${row.ce.instrument_key}_SELL`] && (
+                                            <div className="text-[9px] text-amber-500 font-black mt-0.5">
+                                                Order: {getCalculatedQty(`${row.ce.instrument_key}_SELL`, 'SELL', row.ce.last_price)} ({getCalculatedQty(`${row.ce.instrument_key}_SELL`, 'SELL', row.ce.last_price) / (row.ce.lot_size || getLotSize(index))} L)
                                             </div>
                                         )}
                                     </TableCell>
@@ -1005,10 +1091,8 @@ export default function OptionChain() {
                                         />
                                     </TableCell>
 
-                                    {/* Strike */}
-                                    <TableCell align="center" className="bg-gray-100 dark:bg-gray-900 font-bold border-x dark:border-gray-700 dark:text-white">{row.strike}</TableCell>
+                                    <TableCell align="center" className="bg-gray-100 dark:bg-[#0f1419] font-bold border-x dark:border-[#4a6fa5] dark:text-white">{row.strike}</TableCell>
 
-                                    {/* PE Data */}
                                     <TableCell padding="checkbox">
                                         <Checkbox
                                             checked={!!selectedItems[`${row.pe?.instrument_key}_BUY`]}
@@ -1028,8 +1112,18 @@ export default function OptionChain() {
                                     <TableCell align="right" className="font-bold text-red-700 dark:text-red-400">
                                         {row.pe ? row.pe.last_price : '-'}
                                         {pePos && pePos.quantity > 0 && (
-                                            <div className="flex flex-col text-[10px] mt-1">
+                                            <div className="flex flex-col text-sm mt-1">
                                                 <span className="font-bold text-blue-600">Qty: {pePos.quantity}</span>
+                                            </div>
+                                        )}
+                                        {row.pe && selectedItems[`${row.pe.instrument_key}_BUY`] && (
+                                            <div className="text-[9px] text-indigo-500 font-black mt-0.5 animate-pulse">
+                                                Order: {getCalculatedQty(`${row.pe.instrument_key}_BUY`, 'BUY', row.pe.last_price)} ({getCalculatedQty(`${row.pe.instrument_key}_BUY`, 'BUY', row.pe.last_price) / (row.pe.lot_size || getLotSize(index))} L)
+                                            </div>
+                                        )}
+                                        {row.pe && selectedItems[`${row.pe.instrument_key}_SELL`] && (
+                                            <div className="text-[9px] text-amber-500 font-black mt-0.5">
+                                                Order: {getCalculatedQty(`${row.pe.instrument_key}_SELL`, 'SELL', row.pe.last_price)} ({getCalculatedQty(`${row.pe.instrument_key}_SELL`, 'SELL', row.pe.last_price) / (row.pe.lot_size || getLotSize(index))} L)
                                             </div>
                                         )}
                                     </TableCell>
@@ -1037,7 +1131,7 @@ export default function OptionChain() {
                                         {row.pe && (
                                             <input
                                                 type="number"
-                                                className="w-16 bg-transparent border border-gray-300 dark:border-gray-600 rounded px-1 text-right text-xs dark:text-white"
+                                                className="w-16 bg-transparent border border-gray-300 dark:border-[#4a6fa5] rounded px-1 text-right text-sm dark:text-white"
                                                 value={selectedItems[`${row.pe.instrument_key}_BUY`]?.limit_price || selectedItems[`${row.pe.instrument_key}_SELL`]?.limit_price || ""}
                                                 onChange={(e) => {
                                                     const val = e.target.value;
@@ -1054,9 +1148,9 @@ export default function OptionChain() {
                                         )}
                                     </TableCell>
 
-                                    <TableCell align="right" className="dark:text-gray-200">{row.pe ? formatOI(row.pe.open_interest) : '-'}</TableCell>
-                                    <TableCell align="right" className="text-gray-600 dark:text-gray-400 text-xs">{row.pe ? formatCr(row.pe.oi_value) : ''}</TableCell>
-                                    <TableCell align="right" className="dark:text-gray-200">{row.pe ? row.pe.delta?.toFixed(2) : '-'}</TableCell>
+                                    <TableCell align="right" className="dark:text-slate-200">{row.pe ? formatOI(row.pe.open_interest) : '-'}</TableCell>
+                                    <TableCell align="right" className="text-gray-600 dark:text-slate-400 text-sm">{row.pe ? formatCr(row.pe.oi_value) : ''}</TableCell>
+                                    <TableCell align="right" className="dark:text-slate-200">{row.pe ? row.pe.delta?.toFixed(2) : '-'}</TableCell>
                                 </TableRow>
                             )
                         })}
@@ -1103,32 +1197,32 @@ export default function OptionChain() {
                     {/* Summary Row */}
                     {charges?.total && (
                         <div className="grid grid-cols-3 md:grid-cols-7 gap-2 mb-4">
-                            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-center">
-                                <div className="text-[10px] text-gray-500">Brokerage</div>
+                            <div className="bg-gray-50 dark:bg-[#1e2433] p-2 rounded text-center">
+                                <div className="text-sm text-gray-500">Brokerage</div>
                                 <div className="font-bold text-sm">₹{charges.total.brokerage}</div>
                             </div>
-                            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-center">
-                                <div className="text-[10px] text-gray-500">STT</div>
+                            <div className="bg-gray-50 dark:bg-[#1e2433] p-2 rounded text-center">
+                                <div className="text-sm text-gray-500">STT</div>
                                 <div className="font-bold text-sm">₹{charges.total.stt}</div>
                             </div>
-                            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-center">
-                                <div className="text-[10px] text-gray-500">TX Charges</div>
+                            <div className="bg-gray-50 dark:bg-[#1e2433] p-2 rounded text-center">
+                                <div className="text-sm text-gray-500">TX Charges</div>
                                 <div className="font-bold text-sm">₹{charges.total.tx_charges}</div>
                             </div>
-                            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-center">
-                                <div className="text-[10px] text-gray-500">GST</div>
+                            <div className="bg-gray-50 dark:bg-[#1e2433] p-2 rounded text-center">
+                                <div className="text-sm text-gray-500">GST</div>
                                 <div className="font-bold text-sm">₹{charges.total.gst}</div>
                             </div>
-                            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-center">
-                                <div className="text-[10px] text-gray-500">SEBI</div>
+                            <div className="bg-gray-50 dark:bg-[#1e2433] p-2 rounded text-center">
+                                <div className="text-sm text-gray-500">SEBI</div>
                                 <div className="font-bold text-sm">₹{charges.total.sebi}</div>
                             </div>
-                            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-center">
-                                <div className="text-[10px] text-gray-500">Stamp Duty</div>
+                            <div className="bg-gray-50 dark:bg-[#1e2433] p-2 rounded text-center">
+                                <div className="text-sm text-gray-500">Stamp Duty</div>
                                 <div className="font-bold text-sm">₹{charges.total.stamp_duty}</div>
                             </div>
                             <div className="bg-amber-50 dark:bg-amber-900/30 p-2 rounded text-center border border-amber-200 dark:border-amber-800">
-                                <div className="text-[10px] text-amber-700 dark:text-amber-300">Orders / Trades</div>
+                                <div className="text-sm text-amber-700 dark:text-amber-300">Orders / Trades</div>
                                 <div className="font-bold text-sm text-amber-800 dark:text-amber-200">{charges.total.order_count} / {charges.total.trade_count}</div>
                             </div>
                         </div>
@@ -1153,10 +1247,10 @@ export default function OptionChain() {
                             </TableHead>
                             <TableBody>
                                 {(charges?.orders || []).map((t: any, i: number) => (
-                                    <TableRow key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                                    <TableRow key={i} className="hover:bg-gray-50 dark:hover:bg-[#1e2433]">
                                         <TableCell className="text-xs">{t.trading_symbol}</TableCell>
                                         <TableCell align="center">
-                                            <span className={clsx("text-xs font-bold px-1 py-0.5 rounded", t.transaction_type === 'BUY' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400')}>
+                                            <span className={clsx("text-sm font-bold px-1 py-0.5 rounded", t.transaction_type === 'BUY' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400')}>
                                                 {t.transaction_type}
                                             </span>
                                         </TableCell>
@@ -1167,7 +1261,7 @@ export default function OptionChain() {
                                         <TableCell align="right" className="text-xs">₹{t.stt}</TableCell>
                                         <TableCell align="right" className="text-xs">₹{t.tx_charges}</TableCell>
                                         <TableCell align="right" className="text-xs">₹{t.gst}</TableCell>
-                                        <TableCell align="right" className="text-xs font-bold">₹{t.total}</TableCell>
+                                        <TableCell align="right" className="text-sm font-bold">₹{t.total}</TableCell>
                                     </TableRow>
                                 ))}
                                 {(!charges?.orders || charges.orders.length === 0) && (

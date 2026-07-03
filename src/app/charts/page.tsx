@@ -120,11 +120,11 @@ export default function Charts() {
     return (
         <div className="space-y-6 pb-20">
             {/* Controls */}
-            <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded shadow-sm sticky top-0 z-20 transition-colors duration-200">
+            <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-[#252d3d] p-4 rounded shadow-sm sticky top-0 z-20 transition-colors duration-200">
                 <h1 className="text-2xl font-bold mr-4 dark:text-white">Charts</h1>
 
                 <FormControl size="small" className="min-w-[150px]">
-                    <InputLabel className="dark:text-gray-400">Quick Select</InputLabel>
+                    <InputLabel className="dark:text-slate-400">Quick Select</InputLabel>
                     <Select label="Quick Select" onChange={(e) => handlePresetChange(e.target.value as string)} value={INSTRUMENTS.find(i => i.value === instrument) ? instrument : ''} className="dark:text-white">
                         {INSTRUMENTS.map(i => <MenuItem key={i.value} value={i.value}>{i.label}</MenuItem>)}
                     </Select>
@@ -136,23 +136,23 @@ export default function Charts() {
                     value={instrument}
                     onChange={(e) => setInstrument(e.target.value)}
                     className="min-w-[200px]"
-                    InputLabelProps={{ className: "dark:text-gray-400" }}
+                    InputLabelProps={{ className: "dark:text-slate-400" }}
                     InputProps={{ className: "dark:text-white" }}
                 />
 
                 <FormControl size="small" className="min-w-[100px]">
-                    <InputLabel className="dark:text-gray-400">Interval</InputLabel>
+                    <InputLabel className="dark:text-slate-400">Interval</InputLabel>
                     <Select value={chartInterval} label="Interval" onChange={(e) => setChartInterval(e.target.value)} className="dark:text-white">
                         {INTERVALS.map(i => <MenuItem key={i.value} value={i.value}>{i.label}</MenuItem>)}
                     </Select>
                 </FormControl>
 
-                <div className="flex items-center gap-2 border-l border-gray-300 dark:border-gray-700 pl-4">
+                <div className="flex items-center gap-2 border-l border-gray-300 dark:border-[#4a6fa5] pl-4">
                     <FormControlLabel
                         control={<Switch checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />}
-                        label={<span className="dark:text-gray-200">Auto</span>}
+                        label={<span className="dark:text-slate-200">Auto</span>}
                     />
-                    <Button variant="outlined" startIcon={<RefreshCw />} onClick={() => fetchChartData()} className="dark:text-gray-200 dark:border-gray-600">
+                    <Button variant="outlined" startIcon={<RefreshCw />} onClick={() => fetchChartData()} className="dark:text-slate-200 dark:border-[#4a6fa5]">
                         Refresh
                     </Button>
                 </div>
@@ -164,10 +164,10 @@ export default function Charts() {
                     size="small"
                     className="ml-4"
                 >
-                    <ToggleButton value="history" className="dark:text-white dark:border-gray-600">
+                    <ToggleButton value="history" className="dark:text-white dark:border-[#4a6fa5]">
                         History
                     </ToggleButton>
-                    <ToggleButton value="intraday" className="dark:text-white dark:border-gray-600">
+                    <ToggleButton value="intraday" className="dark:text-white dark:border-[#4a6fa5]">
                         Intraday
                     </ToggleButton>
                 </ToggleButtonGroup>
@@ -186,25 +186,25 @@ export default function Charts() {
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
                 <Paper className="p-3 bg-purple-50 border border-purple-100 dark:bg-purple-900/20 dark:border-purple-800 flex flex-col items-center">
                     <Typography variant="caption" className="text-purple-800 dark:text-purple-300 font-bold">RSI (14)</Typography>
-                    <Typography variant="h6" className="font-bold text-gray-800 dark:text-gray-200">
+                    <Typography variant="h6" className="font-bold text-gray-800 dark:text-slate-200">
                         {typeof indicators.rsi === 'number' ? indicators.rsi.toFixed(2) : 'N/A'}
                     </Typography>
                 </Paper>
                 <Paper className="p-3 bg-blue-50 border border-blue-100 dark:bg-blue-900/20 dark:border-blue-800 flex flex-col items-center">
                     <Typography variant="caption" className="text-blue-800 dark:text-blue-300 font-bold">SMA 50</Typography>
-                    <Typography variant="h6" className="font-bold text-gray-800 dark:text-gray-200">
+                    <Typography variant="h6" className="font-bold text-gray-800 dark:text-slate-200">
                         {typeof indicators.sma_50 === 'number' ? indicators.sma_50.toFixed(2) : 'N/A'}
                     </Typography>
                 </Paper>
                 <Paper className="p-3 bg-indigo-50 border border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-800 flex flex-col items-center">
                     <Typography variant="caption" className="text-indigo-800 dark:text-indigo-300 font-bold">SMA 200</Typography>
-                    <Typography variant="h6" className="font-bold text-gray-800 dark:text-gray-200">
+                    <Typography variant="h6" className="font-bold text-gray-800 dark:text-slate-200">
                         {typeof indicators.sma_200 === 'number' ? indicators.sma_200.toFixed(2) : 'N/A'}
                     </Typography>
                 </Paper>
-                <Paper className="p-3 bg-gray-50 border border-gray-200 dark:bg-gray-800 dark:border-gray-700 flex flex-col items-center">
-                    <Typography variant="caption" className="text-gray-800 dark:text-gray-400 font-bold">ADX (14)</Typography>
-                    <Typography variant="h6" className="font-bold text-gray-800 dark:text-gray-200">
+                <Paper className="p-3 bg-gray-50 border border-gray-200 dark:bg-[#252d3d] dark:border-[#4a6fa5] flex flex-col items-center">
+                    <Typography variant="caption" className="text-gray-800 dark:text-slate-400 font-bold">ADX (14)</Typography>
+                    <Typography variant="h6" className="font-bold text-gray-800 dark:text-slate-200">
                         {typeof indicators.adx === 'number' ? indicators.adx.toFixed(2) : 'N/A'}
                     </Typography>
                 </Paper>
@@ -219,7 +219,7 @@ export default function Charts() {
                             <div className="text-green-700">S2: {pivots.s2}</div>
                             <div className="text-red-500">R1: {pivots.r1}</div>
                             <div className="text-green-500">S1: {pivots.s1}</div>
-                            <div className="col-span-2 text-gray-600 dark:text-gray-400 font-bold border-t border-amber-200 mt-0.5 pt-0.5">P: {pivots.pivot}</div>
+                            <div className="col-span-2 text-gray-600 dark:text-slate-400 font-bold border-t border-amber-200 mt-0.5 pt-0.5">P: {pivots.pivot}</div>
                         </div>
                     ) : <span className="text-xs text-gray-400">N/A</span>}
                 </Paper>
@@ -291,9 +291,9 @@ export default function Charts() {
             {/* Indicators Grid */}
             <div className="grid grid-cols-1 gap-6">
                 {/* 1. Stoch RSI */}
-                <Paper className="p-4 h-[400px] bg-white dark:bg-gray-800 dark:border-gray-700">
+                <Paper className="p-4 h-[400px] bg-white dark:bg-[#252d3d] dark:border-[#4a6fa5]">
                     <div className="flex justify-between items-center mb-2">
-                        <Typography variant="subtitle2" className="font-bold dark:text-gray-200">Stoch RSI</Typography>
+                        <Typography variant="subtitle2" className="font-bold dark:text-slate-200">Stoch RSI</Typography>
                         <div className="flex gap-2 text-xs font-bold">
                             <span className="text-blue-600 dark:text-blue-400">K: {indicators.stoch_k?.toFixed(2)}</span>
                             <span className="text-orange-500">D: {indicators.stoch_d?.toFixed(2)}</span>
@@ -314,13 +314,13 @@ export default function Charts() {
                 </Paper>
 
                 {/* 2. MACD */}
-                <Paper className="p-4 h-[400px] bg-white dark:bg-gray-800 dark:border-gray-700">
+                <Paper className="p-4 h-[400px] bg-white dark:bg-[#252d3d] dark:border-[#4a6fa5]">
                     <div className="flex justify-between items-center mb-2">
-                        <Typography variant="subtitle2" className="font-bold dark:text-gray-200">MACD</Typography>
+                        <Typography variant="subtitle2" className="font-bold dark:text-slate-200">MACD</Typography>
                         <div className="flex gap-2 text-xs font-bold">
                             <span className="text-blue-600 dark:text-blue-400">M: {indicators.macd?.toFixed(2)}</span>
                             <span className="text-orange-500">S: {indicators.macd_signal?.toFixed(2)}</span>
-                            <span className="text-gray-500 dark:text-gray-400">H: {indicators.macd_hist?.toFixed(2)}</span>
+                            <span className="text-gray-500 dark:text-slate-400">H: {indicators.macd_hist?.toFixed(2)}</span>
                         </div>
                     </div>
                     <ResponsiveContainer width="100%" height="85%">
@@ -338,13 +338,13 @@ export default function Charts() {
                 </Paper>
 
                 {/* 3. DMI */}
-                <Paper className="p-4 h-[400px] bg-white dark:bg-gray-800 dark:border-gray-700">
+                <Paper className="p-4 h-[400px] bg-white dark:bg-[#252d3d] dark:border-[#4a6fa5]">
                     <div className="flex justify-between items-center mb-2">
-                        <Typography variant="subtitle2" className="font-bold dark:text-gray-200">DMI (14)</Typography>
+                        <Typography variant="subtitle2" className="font-bold dark:text-slate-200">DMI (14)</Typography>
                         <div className="flex gap-2 text-xs font-bold">
                             <span className="text-green-600 dark:text-green-400">+DI: {indicators.dmp?.toFixed(2)}</span>
                             <span className="text-red-500 dark:text-red-400">-DI: {indicators.dmn?.toFixed(2)}</span>
-                            <span className="text-gray-600 dark:text-gray-400">ADX: {indicators.adx?.toFixed(2)}</span>
+                            <span className="text-gray-600 dark:text-slate-400">ADX: {indicators.adx?.toFixed(2)}</span>
                         </div>
                     </div>
                     <ResponsiveContainer width="100%" height="85%">

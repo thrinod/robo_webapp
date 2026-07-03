@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { runBacktest, searchInstruments, deployStrategy } from '@/services/api';
-import { Play, Search, TrendingUp, TrendingDown, Percent, DollarSign, Activity, ChevronDown, ChevronUp, Info, Wallet, Rocket, X } from 'lucide-react';
+import { runBacktest, searchInstruments, deployStrategy, getExpiryDates, getOptionChain } from '@/services/api';
+import { Play, Search, TrendingUp, TrendingDown, Percent, DollarSign, Activity, ChevronDown, ChevronUp, Info, Wallet, Rocket, X, Zap } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 export default function BacktestPage() {
@@ -70,6 +70,106 @@ export default function BacktestPage() {
         const data = await searchInstruments(query, { exchange: exch, segment: seg === 'ALL' ? undefined : seg });
         setSearchResults(data);
         setIsSearching(false);
+    };
+
+    const handleLoadTemplate = async (index: 'NIFTY' | 'SENSEX', type: 'bullish' | 'bearish') => {
+        const indexKey = index === 'NIFTY' ? 'NSE_INDEX|Nifty 50' : 'BSE_INDEX|SENSEX';
+        const strikeStep = index === 'NIFTY' ? 50 : 100;
+        
+        try {
+            const expiries = await getExpiryDates(indexKey);
+            if (!expiries || expiries.length === 0) {
+                alert(`Failed to fetch expiry dates for ${index}`);
+                return;
+            }
+            const nearestExpiry = expiries[0];
+            
+            const chainRes = await getOptionChain(indexKey, nearestExpiry);
+            const chain = chainRes.data || [];
+            const spotPrice = chainRes.spot_price;
+            
+            if (!chain || chain.length === 0 || !spotPrice) {
+                alert(`Failed to fetch option chain or spot price for ${index}`);
+                return;
+            }
+            
+            const atmStrike = Math.round(spotPrice / strikeStep) * strikeStep;
+            
+            const callOption = chain.find((x: any) => x.strike_price === atmStrike && x.instrument_type === 'CE');
+            const putOption = chain.find((x: any) => x.strike_price === atmStrike && x.instrument_type === 'PE');
+            
+            if (!callOption || !putOption) {
+                alert(`Could not find ATM strike ${atmStrike} Call or Put options in option chain.`);
+                return;
+            }
+            
+            const buyOversoldStrategy = {
+                id: 'buy_oversold',
+                name: 'Buy Oversold',
+                rules: [
+                     {id: 'cond1', indicator: 'low_prev', operator: '<=', value: 'BBL_20_2_prev', valueType: 'indicator'},
+                     {id: 'cond2', indicator: 'STOCHk_prev', operator: '<', value: '20', valueType: 'number'},
+                     {id: 'cond3', indicator: 'STOCHk_prev', operator: '<=', value: 'STOCHd_prev', valueType: 'indicator'},
+                     {id: 'cond4', indicator: 'STOCHk', operator: '>', value: 'STOCHd', valueType: 'indicator'},
+                     {id: 'cond5', indicator: 'MACDh', operator: '>', value: 'MACDh_prev', valueType: 'indicator'}
+                ]
+            };
+
+            const sellStrategy = {
+                id: 'sell_strategy',
+                name: 'Sell Strategy',
+                rules: [
+                     {id: 'srsi_overbought', indicator: 'STOCHRSIk_prev', operator: '>', value: '80', valueType: 'number'},
+                     {id: 'srsi_cross_now', indicator: 'STOCHRSIk', operator: '<', value: 'STOCHRSId', valueType: 'indicator'},
+                     {id: 'srsi_was_above', indicator: 'STOCHRSIk_prev', operator: '>=', value: 'STOCHRSId_prev', valueType: 'indicator'},
+                     {id: 'macd_falling', indicator: 'MACDh', operator: '<', value: 'MACDh_prev', valueType: 'indicator'},
+                     {id: 'macd_was_positive', indicator: 'MACDh_prev', operator: '>', value: '0', valueType: 'number'},
+                     {id: 'red_candle', indicator: 'close', operator: '<', value: 'open', valueType: 'indicator'}
+                ]
+            };
+
+            setSavedStrategies(prev => {
+                const list = [...prev];
+                if (!list.some(s => s.id === 'buy_oversold')) list.push(buyOversoldStrategy);
+                if (!list.some(s => s.id === 'sell_strategy')) list.push(sellStrategy);
+                localStorage.setItem("robotrader_strategies", JSON.stringify(list));
+                return list;
+            });
+            
+            setStrategyMode('advanced');
+            setTradeType('LONG');
+            setStopLoss(50.0);
+            setTakeProfit(100.0);
+            setUseIntraday(true);
+            
+            if (type === 'bullish') {
+                setExecutionPlan([
+                    { id: 1, strategyId: 'buy_oversold', timeframe: '5minute', leg: indexKey },
+                    { id: 2, strategyId: 'buy_oversold', timeframe: '5minute', leg: callOption.instrument_key },
+                    { id: 3, strategyId: 'sell_strategy', timeframe: '5minute', leg: putOption.instrument_key }
+                ]);
+                setTradeInstrument({
+                    instrument_key: callOption.instrument_key,
+                    name: `${index} ATM Call (${atmStrike} CE)`,
+                    trading_symbol: callOption.instrument_key.split('|')[1] || callOption.instrument_key
+                });
+            } else {
+                setExecutionPlan([
+                    { id: 1, strategyId: 'sell_strategy', timeframe: '5minute', leg: indexKey },
+                    { id: 2, strategyId: 'sell_strategy', timeframe: '5minute', leg: callOption.instrument_key },
+                    { id: 3, strategyId: 'buy_oversold', timeframe: '5minute', leg: putOption.instrument_key }
+                ]);
+                setTradeInstrument({
+                    instrument_key: putOption.instrument_key,
+                    name: `${index} ATM Put (${atmStrike} PE)`,
+                    trading_symbol: putOption.instrument_key.split('|')[1] || putOption.instrument_key
+                });
+            }
+            
+            alert(`Loaded ${index} ATM ${type.toUpperCase()} Strategy Template!`);
+        } catch (err: any) {
+            alert(`Error loading template: ${err.message || err}`);
+        }
     };
 
     const activeKey = selectedInstrument?.instrument_key || (searchQuery.includes('|') ? searchQuery : null);
@@ -189,8 +289,45 @@ export default function BacktestPage() {
             </h1>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Configuration Panel */}
                 <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-6 flex flex-col h-full max-h-[800px] overflow-y-auto custom-scrollbar">
+                    {/* ATM Strategy Templates */}
+                    <div className="bg-indigo-950/20 border border-indigo-500/10 rounded-xl p-4 space-y-3 shadow-inner">
+                        <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
+                            <Zap className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                            ATM Strategy Templates
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => handleLoadTemplate("NIFTY", "bullish")}
+                                className="py-2 bg-indigo-600/10 hover:bg-indigo-600 border border-indigo-500/10 hover:border-indigo-500 text-indigo-400 hover:text-white rounded-lg text-[10px] font-bold tracking-tight transition-all active:scale-95"
+                            >
+                                Nifty ATM Bullish
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleLoadTemplate("NIFTY", "bearish")}
+                                className="py-2 bg-indigo-600/10 hover:bg-indigo-600 border border-indigo-500/10 hover:border-indigo-500 text-indigo-400 hover:text-white rounded-lg text-[10px] font-bold tracking-tight transition-all active:scale-95"
+                            >
+                                Nifty ATM Bearish
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleLoadTemplate("SENSEX", "bullish")}
+                                className="py-2 bg-indigo-600/10 hover:bg-indigo-600 border border-indigo-500/10 hover:border-indigo-500 text-indigo-400 hover:text-white rounded-lg text-[10px] font-bold tracking-tight transition-all active:scale-95"
+                            >
+                                Sensex ATM Bullish
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleLoadTemplate("SENSEX", "bearish")}
+                                className="py-2 bg-indigo-600/10 hover:bg-indigo-600 border border-indigo-500/10 hover:border-indigo-500 text-indigo-400 hover:text-white rounded-lg text-[10px] font-bold tracking-tight transition-all active:scale-95"
+                            >
+                                Sensex ATM Bearish
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="flex justify-between items-center">
                         <h2 className="text-xl font-semibold text-white">Strategy Config</h2>
                         <div className="flex bg-gray-800 rounded-lg p-1">

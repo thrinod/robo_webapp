@@ -49,7 +49,7 @@ export default function DataViewer() {
             </div>
 
             {/* Collection Selector */}
-            <div className="flex flex-wrap gap-2 p-4 bg-white dark:bg-gray-800 rounded shadow-sm">
+            <div className="flex flex-wrap gap-2 p-4 bg-white dark:bg-[#252d3d] rounded shadow-sm">
                 {collections.map(col => (
                     <Chip
                         key={col}
@@ -57,13 +57,13 @@ export default function DataViewer() {
                         onClick={() => setSelected(col)}
                         color={selected === col ? "primary" : "default"}
                         variant={selected === col ? "filled" : "outlined"}
-                        className="cursor-pointer dark:text-gray-200 dark:border-gray-600"
+                        className="cursor-pointer dark:text-slate-200 dark:border-[#4a6fa5]"
                     />
                 ))}
             </div>
 
             {/* Search & Content */}
-            <div className="bg-white dark:bg-gray-800 p-4 rounded shadow">
+            <div className="bg-white dark:bg-[#252d3d] p-4 rounded shadow">
                 <form onSubmit={handleSearch} className="flex gap-2 mb-4">
                     <TextField
                         size="small"
@@ -71,11 +71,11 @@ export default function DataViewer() {
                         placeholder="Search JSON..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="dark:bg-gray-700"
+                        className="dark:bg-[#2d3748]"
                         InputProps={{
                             startAdornment: (
                                 <InputAdornment position="start">
-                                    <Search size={18} className="dark:text-gray-400" />
+                                    <Search size={18} className="dark:text-slate-400" />
                                 </InputAdornment>
                             ),
                             className: "dark:text-white"
@@ -88,14 +88,14 @@ export default function DataViewer() {
 
                 <div className="grid grid-cols-1 gap-4">
                     {loading ? (
-                        <Typography className="dark:text-gray-300">Loading...</Typography>
+                        <Typography className="dark:text-slate-300">Loading...</Typography>
                     ) : data.length === 0 ? (
-                        <Typography color="textSecondary" className="dark:text-gray-400">No records found.</Typography>
+                        <Typography color="textSecondary" className="dark:text-slate-400">No records found.</Typography>
                     ) : (
                         data.map((item, idx) => (
-                            <Card key={item._id || idx} variant="outlined" className="bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+                            <Card key={item._id || idx} variant="outlined" className="bg-gray-50 dark:bg-[#1e2433] border-gray-200 dark:border-[#4a6fa5]">
                                 <CardContent>
-                                    <pre className="text-xs overflow-x-auto whitespace-pre-wrap font-mono text-gray-800 dark:text-gray-300">
+                                    <pre className="text-xs overflow-x-auto whitespace-pre-wrap font-mono text-gray-800 dark:text-slate-300">
                                         {JSON.stringify(item, null, 2)}
                                     </pre>
                                 </CardContent>

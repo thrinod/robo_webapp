@@ -1006,21 +1006,21 @@ export default function IndicatorsPage() {
         <div className="p-4 max-w-5xl mx-auto space-y-6 pb-20">
             {/* Header */}
             <div className="text-center">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Market Indicators</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">BUY / SELL signals based on option chain analysis</p>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100">Market Indicators</h1>
+                <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">BUY / SELL signals based on option chain analysis</p>
             </div>
 
             {/* Controls */}
-            <Paper className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-center shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700">
+            <Paper className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-center shadow-sm bg-white dark:bg-[#252d3d] dark:border-[#4a6fa5]">
                 <FormControl size="small" fullWidth>
-                    <InputLabel className="dark:text-gray-400">Index</InputLabel>
+                    <InputLabel className="dark:text-slate-400">Index</InputLabel>
                     <Select value={index} label="Index" onChange={(e) => setIndex(e.target.value)} className="dark:text-white">
                         {INDICES.map(idx => <MenuItem key={idx.value} value={idx.value}>{idx.label}</MenuItem>)}
                     </Select>
                 </FormControl>
 
                 <FormControl size="small" fullWidth>
-                    <InputLabel className="dark:text-gray-400">Expiry</InputLabel>
+                    <InputLabel className="dark:text-slate-400">Expiry</InputLabel>
                     <Select value={expiry} label="Expiry" onChange={(e) => setExpiry(e.target.value)} className="dark:text-white">
                         {expiryDates.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
                     </Select>
@@ -1037,7 +1037,7 @@ export default function IndicatorsPage() {
                     </Button>
                     <FormControlLabel
                         control={<Switch size="small" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />}
-                        label={<span className="text-sm dark:text-gray-200">Auto</span>}
+                        label={<span className="text-sm dark:text-slate-200">Auto</span>}
                     />
                     <TextField
                         size="small" type="number" value={refreshSeconds}
@@ -1045,11 +1045,11 @@ export default function IndicatorsPage() {
                         inputProps={{ min: 1, style: { width: 40, textAlign: 'center', padding: '4px' } }}
                         sx={{ '& .MuiOutlinedInput-root': { height: 30 } }}
                     />
-                    <span className="text-xs text-gray-500 dark:text-gray-400">sec</span>
+                    <span className="text-xs text-gray-500 dark:text-slate-400">sec</span>
                 </div>
 
-                <div className="flex flex-col items-end text-xs text-gray-500 dark:text-gray-400">
-                    {spot > 0 && <span className="font-semibold text-base text-gray-800 dark:text-gray-200">{indexLabel}: {spot.toFixed(2)}</span>}
+                <div className="flex flex-col items-end text-xs text-gray-500 dark:text-slate-400">
+                    {spot > 0 && <span className="font-semibold text-base text-gray-800 dark:text-slate-200">{indexLabel}: {spot.toFixed(2)}</span>}
                     {lastFetched && <span>Last: {lastFetched}</span>}
                 </div>
             </Paper>
@@ -1069,17 +1069,17 @@ export default function IndicatorsPage() {
                     </div>
                     
                     <Typography variant="h5" className="font-black text-indigo-900 dark:text-indigo-300 mb-2">Rules Engine Predictor</Typography>
-                    <Typography variant="body2" className="text-gray-600 dark:text-gray-400 mb-6">Evaluated across 5 CE & 5 PE ATM strikes (Spot: {predictionData.spotPrice.toFixed(2)})</Typography>
+                    <Typography variant="body2" className="text-gray-600 dark:text-slate-400 mb-6">Evaluated across 5 CE & 5 PE ATM strikes (Spot: {predictionData.spotPrice.toFixed(2)})</Typography>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Rules Evaluated */}
                         <div>
-                            <Typography variant="subtitle1" className="font-bold border-b pb-2 mb-3 dark:border-gray-700 dark:text-gray-200">Rules Evaluated</Typography>
+                            <Typography variant="subtitle1" className="font-bold border-b pb-2 mb-3 dark:border-[#4a6fa5] dark:text-slate-200">Rules Evaluated</Typography>
                             <div className="space-y-2">
                                 {predictionData.rules.map((rule: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between items-center p-3 bg-white dark:bg-gray-800 rounded border dark:border-gray-700">
+                                    <div key={idx} className="flex justify-between items-center p-3 bg-white dark:bg-[#252d3d] rounded border dark:border-[#4a6fa5]">
                                         <div>
-                                            <div className="font-bold text-sm dark:text-gray-300">{rule.name}</div>
+                                            <div className="font-bold text-sm dark:text-slate-300">{rule.name}</div>
                                             <div className="text-xs text-gray-500">{rule.condition}</div>
                                         </div>
                                         <div className={clsx(
@@ -1097,10 +1097,10 @@ export default function IndicatorsPage() {
 
                         {/* Extracted Data Summary */}
                         <div>
-                            <Typography variant="subtitle1" className="font-bold border-b pb-2 mb-3 dark:border-gray-700 dark:text-gray-200">5 CE / PE Intraday Summary</Typography>
+                            <Typography variant="subtitle1" className="font-bold border-b pb-2 mb-3 dark:border-[#4a6fa5] dark:text-slate-200">5 CE / PE Intraday Summary</Typography>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-xs text-left">
-                                    <thead className="text-gray-500 border-b dark:border-gray-700">
+                                    <thead className="text-gray-500 border-b dark:border-[#4a6fa5]">
                                         <tr>
                                             <th className="pb-2">Strike</th>
                                             <th className="pb-2">CE (LTP)</th>
@@ -1112,13 +1112,13 @@ export default function IndicatorsPage() {
                                     <tbody className="divide-y dark:divide-gray-700">
                                         {predictionData.strikes.map((s: any) => (
                                             <tr key={s.strike} className={s.isAtm ? "bg-blue-50 dark:bg-blue-900/20 font-bold" : ""}>
-                                                <td className="py-2 dark:text-gray-300">{s.strike} {s.isAtm ? "(ATM)" : ""}</td>
+                                                <td className="py-2 dark:text-slate-300">{s.strike} {s.isAtm ? "(ATM)" : ""}</td>
                                                 <td className="py-2 text-blue-600 dark:text-blue-400">{s.ce.ltp}</td>
-                                                <td className="py-2 text-gray-600 dark:text-gray-400">
+                                                <td className="py-2 text-gray-600 dark:text-slate-400">
                                                     {s.ce.tf5?.rsi?.toFixed(1) || "-"} / {s.ce.tf15?.rsi?.toFixed(1) || "-"}
                                                 </td>
                                                 <td className="py-2 text-purple-600 dark:text-purple-400">{s.pe.ltp}</td>
-                                                <td className="py-2 text-gray-600 dark:text-gray-400">
+                                                <td className="py-2 text-gray-600 dark:text-slate-400">
                                                     {s.pe.tf5?.rsi?.toFixed(1) || "-"} / {s.pe.tf15?.rsi?.toFixed(1) || "-"}
                                                 </td>
                                             </tr>
@@ -1157,7 +1157,7 @@ export default function IndicatorsPage() {
             {/* Individual Indicator Cards - Vertical */}
             {indicators.length > 0 && (
                 <div className="space-y-4">
-                    <Typography variant="subtitle1" fontWeight="bold" className="dark:text-gray-200">Indicator Breakdown</Typography>
+                    <Typography variant="subtitle1" fontWeight="bold" className="dark:text-slate-200">Indicator Breakdown</Typography>
 
                     <div className="flex flex-col gap-5">
                         {indicators.map((ind) => {
@@ -1167,7 +1167,7 @@ export default function IndicatorsPage() {
                             return (
                                 <Paper key={ind.name} className={clsx(
                                     "p-0 overflow-hidden border",
-                                    "bg-white dark:bg-gray-800",
+                                    "bg-white dark:bg-[#252d3d]",
                                     "shadow-md hover:shadow-lg transition-shadow duration-200",
                                     ind.signal === "BUY" && "border-emerald-300 dark:border-emerald-700",
                                     ind.signal === "SELL" && "border-rose-300 dark:border-rose-700",
@@ -1188,8 +1188,8 @@ export default function IndicatorsPage() {
                                                 <Icon className="w-5 h-5 text-white" />
                                             </div>
                                             <div>
-                                                <Typography variant="h6" className="font-bold dark:text-gray-100 leading-tight">{ind.name}</Typography>
-                                                <Typography variant="caption" className="text-gray-500 dark:text-gray-400">
+                                                <Typography variant="h6" className="font-bold dark:text-slate-100 leading-tight">{ind.name}</Typography>
+                                                <Typography variant="caption" className="text-gray-500 dark:text-slate-400">
                                                     Value: {typeof ind.value === "number" ? ind.value.toFixed(2) : ind.value}
                                                 </Typography>
                                             </div>
@@ -1213,16 +1213,16 @@ export default function IndicatorsPage() {
                                                 ind.signal === "SELL" && "bg-rose-400",
                                                 ind.signal === "NEUTRAL" && "bg-amber-400"
                                             )} />
-                                            <Typography variant="body2" className="text-gray-600 dark:text-gray-300 leading-relaxed">{ind.description}</Typography>
+                                            <Typography variant="body2" className="text-gray-600 dark:text-slate-300 leading-relaxed">{ind.description}</Typography>
                                         </div>
 
                                         {/* Extra Stats — skip for custom layouts (ATM Technical Signals, Box Formation) */}
                                         {ind.name !== "ATM Technical Signals" && ind.name !== "Box Formation" && ind.extras && Object.keys(ind.extras).length > 0 && (
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                                 {Object.entries(ind.extras).map(([key, val]) => (
-                                                    <div key={key} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2 text-center">
-                                                        <Typography variant="caption" className="text-gray-500 dark:text-gray-400 block">{key}</Typography>
-                                                        <Typography variant="body2" className="font-bold text-gray-800 dark:text-gray-200">{val}</Typography>
+                                                    <div key={key} className="bg-gray-50 dark:bg-[#2d3748]/50 rounded-lg px-3 py-2 text-center">
+                                                        <Typography variant="caption" className="text-gray-500 dark:text-slate-400 block">{key}</Typography>
+                                                        <Typography variant="body2" className="font-bold text-gray-800 dark:text-slate-200">{val}</Typography>
                                                     </div>
                                                 ))}
                                             </div>
@@ -1259,7 +1259,7 @@ export default function IndicatorsPage() {
                                                         {/* 5min Card */}
                                                         <div className={`border rounded-lg p-3 ${signalBg(opt.signal5)}`}>
                                                             <div className="flex items-center justify-between mb-2">
-                                                                <Typography variant="caption" className="font-bold text-gray-700 dark:text-gray-200">
+                                                                <Typography variant="caption" className="font-bold text-gray-700 dark:text-slate-200">
                                                                     ⏱ 5 Min
                                                                 </Typography>
                                                                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${signalColor(opt.signal5)} ${signalBg(opt.signal5)}`}>
@@ -1269,9 +1269,9 @@ export default function IndicatorsPage() {
                                                             <div className="space-y-1.5">
                                                                 {opt.tf5.map(s => (
                                                                     <div key={s.indicator} className="flex items-center justify-between text-xs">
-                                                                        <span className="text-gray-600 dark:text-gray-300 font-medium">{s.indicator}</span>
+                                                                        <span className="text-gray-600 dark:text-slate-300 font-medium">{s.indicator}</span>
                                                                         <div className="flex items-center gap-1">
-                                                                            <span className="text-gray-500 dark:text-gray-400 text-[11px]">{s.value}</span>
+                                                                            <span className="text-gray-500 dark:text-slate-400 text-[11px]">{s.value}</span>
                                                                             <span className={signalColor(s.signal)}>{emoji(s.signal)}</span>
                                                                         </div>
                                                                     </div>
@@ -1282,7 +1282,7 @@ export default function IndicatorsPage() {
                                                         {/* 15min Card */}
                                                         <div className={`border rounded-lg p-3 ${signalBg(opt.signal15)}`}>
                                                             <div className="flex items-center justify-between mb-2">
-                                                                <Typography variant="caption" className="font-bold text-gray-700 dark:text-gray-200">
+                                                                <Typography variant="caption" className="font-bold text-gray-700 dark:text-slate-200">
                                                                     ⏱ 15 Min
                                                                 </Typography>
                                                                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${signalColor(opt.signal15)} ${signalBg(opt.signal15)}`}>
@@ -1292,9 +1292,9 @@ export default function IndicatorsPage() {
                                                             <div className="space-y-1.5">
                                                                 {opt.tf15.map(s => (
                                                                     <div key={s.indicator} className="flex items-center justify-between text-xs">
-                                                                        <span className="text-gray-600 dark:text-gray-300 font-medium">{s.indicator}</span>
+                                                                        <span className="text-gray-600 dark:text-slate-300 font-medium">{s.indicator}</span>
                                                                         <div className="flex items-center gap-1">
-                                                                            <span className="text-gray-500 dark:text-gray-400 text-[11px]">{s.value}</span>
+                                                                            <span className="text-gray-500 dark:text-slate-400 text-[11px]">{s.value}</span>
                                                                             <span className={signalColor(s.signal)}>{emoji(s.signal)}</span>
                                                                         </div>
                                                                     </div>
@@ -1323,7 +1323,7 @@ export default function IndicatorsPage() {
                                             const statusBg = (detected: boolean, breakout: string) => {
                                                 if (breakout === "up") return "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700";
                                                 if (breakout === "down") return "bg-rose-100 dark:bg-rose-900/40 border-rose-300 dark:border-rose-700";
-                                                return detected ? "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700" : "bg-gray-100 dark:bg-gray-800/40 border-gray-300 dark:border-gray-700";
+                                                return detected ? "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700" : "bg-gray-100 dark:bg-[#252d3d]/40 border-gray-300 dark:border-[#4a6fa5]";
                                             };
 
                                             const renderBoxColumn = (box: BoxResult | null, type: string, headerColor: string) => {
@@ -1350,18 +1350,18 @@ export default function IndicatorsPage() {
                                                         <div className={`border rounded-lg p-3 ${statusBg(box.detected, box.breakout)}`}>
                                                             <div className="space-y-1.5">
                                                                 <div className="flex justify-between text-xs">
-                                                                    <span className="text-gray-600 dark:text-gray-300">Support / Resistance</span>
+                                                                    <span className="text-gray-600 dark:text-slate-300">Support / Resistance</span>
                                                                     <span className="font-bold">{box.boxLow.toFixed(1)} – {box.boxHigh.toFixed(1)}</span>
                                                                 </div>
                                                                 <div className="flex justify-between text-xs">
-                                                                    <span className="text-gray-600 dark:text-gray-300">Formation Start</span>
+                                                                    <span className="text-gray-600 dark:text-slate-300">Formation Start</span>
                                                                     <span className="font-bold">{box.firstSupportTime || "N/A"}</span>
                                                                 </div>
                                                                 <div className="flex justify-between text-xs">
-                                                                    <span className="text-gray-600 dark:text-gray-300">Width / Containment</span>
+                                                                    <span className="text-gray-600 dark:text-slate-300">Width / Containment</span>
                                                                     <span className="font-bold">{box.rangeWidth.toFixed(1)}% / {box.containment.toFixed(0)}%</span>
                                                                 </div>
-                                                                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                                                                <div className="pt-2 border-t border-gray-200 dark:border-[#4a6fa5]">
                                                                     <Typography variant="caption" className="block text-[10px] text-gray-500 uppercase font-bold mb-1">Live Position</Typography>
                                                                     <div className="flex justify-between items-center bg-white/50 dark:bg-black/20 p-2 rounded">
                                                                         <span className="text-xs font-bold">{box.ltp.toFixed(1)}</span>
@@ -1383,8 +1383,8 @@ export default function IndicatorsPage() {
                                                         {renderBoxColumn(boxData.pe, "PE (Put)", "bg-purple-50 dark:bg-purple-900/20")}
                                                     </div>
                                                     {ind.extras?.["Action"] && (
-                                                        <div className="bg-gray-100 dark:bg-gray-900/60 p-3 rounded-lg border border-dashed border-gray-400 dark:border-gray-600">
-                                                            <Typography variant="subtitle2" className="text-center font-black uppercase tracking-widest text-gray-800 dark:text-gray-200">
+                                                        <div className="bg-gray-100 dark:bg-[#1e2433]/60 p-3 rounded-lg border border-dashed border-gray-400 dark:border-[#4a6fa5]">
+                                                            <Typography variant="subtitle2" className="text-center font-black uppercase tracking-widest text-gray-800 dark:text-slate-200">
                                                                 🎯 RECOMMENDED ACTION: {ind.extras["Action"]}
                                                             </Typography>
                                                         </div>
@@ -1395,13 +1395,13 @@ export default function IndicatorsPage() {
 
                                         {/* Day's Low Recovery — custom CE/PE layout */}
                                         {ind.name === "Day's Low Recovery" && recoveryData.length > 0 && (
-                                            <div className="overflow-x-auto border rounded-xl dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40 p-4">
+                                            <div className="overflow-x-auto border rounded-xl dark:border-[#4a6fa5] bg-gray-50/50 dark:bg-[#1e2433]/40 p-4">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     {['CE (Calls)', 'PE (Puts)'].map((title, idx) => {
                                                         const items = recoveryData.filter(i => i.type === (idx === 0 ? 'CE' : 'PE'));
                                                         return (
                                                             <div key={title} className="space-y-4">
-                                                                <Typography variant="subtitle2" className="flex items-center gap-2 font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                                                                <Typography variant="subtitle2" className="flex items-center gap-2 font-black uppercase tracking-widest text-gray-500 dark:text-slate-400">
                                                                     {idx === 0 ? "🔵" : "🟣"} {title}
                                                                 </Typography>
                                                                 <div className="grid gap-3">
@@ -1417,18 +1417,18 @@ export default function IndicatorsPage() {
                                                                         const progressPct = range > 0 ? Math.min(Math.max(((ltpVal - lowVal) / range) * 100, 0), 100) : 0;
 
                                                                         return (
-                                                                            <div key={`${item.type}-${item.strike}`} className="bg-white dark:bg-gray-800 rounded-xl p-3 border dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                                                                            <div key={`${item.type}-${item.strike}`} className="bg-white dark:bg-[#252d3d] rounded-xl p-3 border dark:border-[#4a6fa5] shadow-sm relative overflow-hidden group">
                                                                                 {item.signal === "BUY" && (
                                                                                     <div className="absolute top-0 right-0 w-16 h-16 -mr-8 -mt-8 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-colors" />
                                                                                 )}
                                                                                 <div className="flex justify-between items-center mb-2">
-                                                                                    <span className="text-sm font-black text-gray-800 dark:text-gray-100">{item.strike}</span>
+                                                                                    <span className="text-sm font-black text-gray-800 dark:text-slate-100">{item.strike}</span>
                                                                                     <span className={clsx("text-[10px] font-black px-2 py-0.5 rounded-full uppercase", sigStyle.bg, sigStyle.text)}>
                                                                                         {item.signal}
                                                                                     </span>
                                                                                 </div>
                                                                                 <div className="grid grid-cols-1 gap-2 text-[11px]">
-                                                                                    <div className="flex justify-between bg-gray-50 dark:bg-gray-900/60 p-1.5 rounded">
+                                                                                    <div className="flex justify-between bg-gray-50 dark:bg-[#1e2433]/60 p-1.5 rounded">
                                                                                         <span className="text-gray-500">LTP / Low</span>
                                                                                         <span className="font-bold">{ltpVal.toFixed(1)} / {lowVal.toFixed(1)}</span>
                                                                                     </div>
@@ -1439,7 +1439,7 @@ export default function IndicatorsPage() {
                                                                                             <span>Low</span>
                                                                                             <span>High</span>
                                                                                         </div>
-                                                                                        <div className="relative h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                                                        <div className="relative h-1.5 bg-gray-100 dark:bg-[#2d3748] rounded-full overflow-hidden">
                                                                                             {/* 50% Marker */}
                                                                                             <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-400 dark:bg-gray-500 z-10 opacity-50" />
                                                                                             <div
@@ -1452,20 +1452,20 @@ export default function IndicatorsPage() {
                                                                                         </div>
                                                                                         <div className="flex justify-between text-[9px] text-gray-500">
                                                                                             <span>{lowVal.toFixed(1)}</span>
-                                                                                            <span className="font-black text-gray-800 dark:text-gray-200">LTP: {ltpVal.toFixed(1)} ({progressPct.toFixed(0)}%)</span>
+                                                                                            <span className="font-black text-gray-800 dark:text-slate-200">LTP: {ltpVal.toFixed(1)} ({progressPct.toFixed(0)}%)</span>
                                                                                             <span>{highVal.toFixed(1)}</span>
                                                                                         </div>
                                                                                     </div>
 
-                                                                                    <div className="flex justify-between bg-gray-50 dark:bg-gray-900/60 p-1.5 rounded">
+                                                                                    <div className="flex justify-between bg-gray-50 dark:bg-[#1e2433]/60 p-1.5 rounded">
                                                                                         <span className="text-gray-500">Recovery</span>
-                                                                                        <span className={clsx("font-black", recoveryVal >= 50 ? "text-emerald-500" : "text-gray-700 dark:text-gray-300")}>
+                                                                                        <span className={clsx("font-black", recoveryVal >= 50 ? "text-emerald-500" : "text-gray-700 dark:text-slate-300")}>
                                                                                             {recoveryVal.toFixed(1)}%
                                                                                         </span>
                                                                                     </div>
                                                                                 </div>
                                                                                 {item.action !== "-" && (
-                                                                                    <div className="mt-2 pt-2 border-t dark:border-gray-700 flex justify-between items-center">
+                                                                                    <div className="mt-2 pt-2 border-t dark:border-[#4a6fa5] flex justify-between items-center">
                                                                                         <span className={clsx(
                                                                                             "text-[10px] uppercase font-black text-center w-full py-1 rounded",
                                                                                             item.action === "SELL OPTION" ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400" : "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400"
@@ -1493,7 +1493,7 @@ export default function IndicatorsPage() {
                                                     <span className="text-amber-500 font-medium">NEUTRAL</span>
                                                     <span className="text-rose-500 font-medium">SELL (&gt;1.3)</span>
                                                 </div>
-                                                <div className="relative h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                <div className="relative h-4 bg-gray-200 dark:bg-[#2d3748] rounded-full overflow-hidden">
                                                     <div className="absolute inset-0 flex">
                                                         <div className="w-[35%] bg-gradient-to-r from-emerald-500 to-emerald-400" />
                                                         <div className="w-[30%] bg-gradient-to-r from-amber-400 to-amber-500" />
@@ -1514,7 +1514,7 @@ export default function IndicatorsPage() {
                                                     <span className="text-rose-500 font-medium">Call OI (Bearish)</span>
                                                     <span className="text-emerald-500 font-medium">Put OI (Bullish)</span>
                                                 </div>
-                                                <div className="relative h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                <div className="relative h-4 bg-gray-200 dark:bg-[#2d3748] rounded-full overflow-hidden">
                                                     {(() => {
                                                         const callOi = Number(String(ind.extras!["ITM Call OI (5)"]).replace(/,/g, '')) || 0;
                                                         const putOi = Number(String(ind.extras!["ITM Put OI (5)"]).replace(/,/g, '')) || 0;
@@ -1557,7 +1557,7 @@ export default function IndicatorsPage() {
 
             {/* Empty state */}
             {indicators.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500">
+                <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-slate-400">
                     <RefreshCw className="w-12 h-12 mb-4 opacity-30" />
                     <Typography variant="h6">Select an index and click Fetch</Typography>
                     <Typography variant="body2">to generate BUY / SELL indicators</Typography>

@@ -209,14 +209,14 @@ export default function AnalysisPage() {
                 </Alert>
             </Snackbar>
 
-            <Paper className="p-4 bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-20 transition-colors duration-200">
+            <Paper className="p-4 bg-white dark:bg-[#252d3d] shadow-sm sticky top-0 z-20 transition-colors duration-200">
                 <div className="flex flex-col xl:flex-row gap-4 items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
-                        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Prediction Analysis</h1>
+                        <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Prediction Analysis</h1>
 
                         {/* Basket Selector */}
-                        <Paper component="form" className="p-1 px-2 flex items-center bg-gray-50 dark:bg-gray-700 border dark:border-gray-600">
-                            <span className="text-xs font-bold mr-2 text-gray-500 dark:text-gray-400">BASKET:</span>
+                        <Paper component="form" className="p-1 px-2 flex items-center bg-gray-50 dark:bg-[#2d3748] border dark:border-[#4a6fa5]">
+                            <span className="text-xs font-bold mr-2 text-gray-500 dark:text-slate-400">BASKET:</span>
                             <Select
                                 value={currentBasket}
                                 size="small"
@@ -242,7 +242,7 @@ export default function AnalysisPage() {
                                 <UploadCloud size={16} />
                             </IconButton>
                             <IconButton size="small" onClick={() => loadBasketData(currentBasket)} title="Reload Basket" disabled={basketLoading}>
-                                <FolderOpen size={16} className="text-gray-600 dark:text-gray-300" />
+                                <FolderOpen size={16} className="text-gray-600 dark:text-slate-300" />
                             </IconButton>
                         </Paper>
                     </div>
@@ -256,13 +256,13 @@ export default function AnalysisPage() {
                             onChange={handleApiTypeChange}
                             aria-label="API Type"
                             size="small"
-                            className="bg-gray-100 dark:bg-gray-700"
+                            className="bg-gray-100 dark:bg-[#2d3748]"
                         >
-                            <ToggleButton value="history" className="dark:text-gray-300">History</ToggleButton>
-                            <ToggleButton value="intraday" className="dark:text-gray-300">Intraday</ToggleButton>
+                            <ToggleButton value="history" className="dark:text-slate-300">History</ToggleButton>
+                            <ToggleButton value="intraday" className="dark:text-slate-300">Intraday</ToggleButton>
                         </ToggleButtonGroup>
 
-                        <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2"></div>
+                        <div className="h-6 w-px bg-gray-300 dark:bg-[#2d3748] mx-2"></div>
 
                         {/* Snapshot Buttons */}
                         <Button
@@ -284,12 +284,12 @@ export default function AnalysisPage() {
                             SELL
                         </Button>
 
-                        <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2"></div>
+                        <div className="h-6 w-px bg-gray-300 dark:bg-[#2d3748] mx-2"></div>
 
                         <FormControlLabel
                             control={<Switch checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} color="primary" />}
                             label="5s"
-                            className="text-gray-800 dark:text-gray-200"
+                            className="text-gray-800 dark:text-slate-200"
                         />
 
                         <Button
@@ -298,13 +298,13 @@ export default function AnalysisPage() {
                             disabled={loadingExpiries}
                             startIcon={<Calendar className="w-4 h-4" />}
                             size="small"
-                            className="dark:text-gray-200 dark:border-gray-600"
+                            className="dark:text-slate-200 dark:border-[#4a6fa5]"
                         >
                             {loadingExpiries ? "..." : "Expiries"}
                         </Button>
 
                         <FormControl size="small" className="min-w-[150px]">
-                            <InputLabel className="dark:text-gray-400">Expiry</InputLabel>
+                            <InputLabel className="dark:text-slate-400">Expiry</InputLabel>
                             <Select
                                 value={selectedExpiry}
                                 label="Expiry"
@@ -324,8 +324,8 @@ export default function AnalysisPage() {
                         size="small"
                         value={indexKey}
                         onChange={(e) => setIndexKey(e.target.value)}
-                        className="dark:bg-gray-700 rounded"
-                        InputLabelProps={{ className: "dark:text-gray-400" }}
+                        className="dark:bg-[#2d3748] rounded"
+                        InputLabelProps={{ className: "dark:text-slate-400" }}
                         InputProps={{ className: "dark:text-white" }}
                     />
 
@@ -335,13 +335,13 @@ export default function AnalysisPage() {
                         size="small"
                         value={slot1Key}
                         onChange={(e) => setSlot1Key(e.target.value)}
-                        className="dark:bg-gray-700 rounded"
-                        InputLabelProps={{ className: "dark:text-gray-400" }}
+                        className="dark:bg-[#2d3748] rounded"
+                        InputLabelProps={{ className: "dark:text-slate-400" }}
                         InputProps={{
                             className: "dark:text-white",
                             endAdornment: (
                                 <InputAdornment position="end">
-                                    <IconButton size="small" onClick={() => openModal(1)}><Search size={16} className="dark:text-gray-300" /></IconButton>
+                                    <IconButton size="small" onClick={() => openModal(1)}><Search size={16} className="dark:text-slate-300" /></IconButton>
                                 </InputAdornment>
                             )
                         }}
@@ -353,13 +353,13 @@ export default function AnalysisPage() {
                         size="small"
                         value={slot2Key}
                         onChange={(e) => setSlot2Key(e.target.value)}
-                        className="dark:bg-gray-700 rounded"
-                        InputLabelProps={{ className: "dark:text-gray-400" }}
+                        className="dark:bg-[#2d3748] rounded"
+                        InputLabelProps={{ className: "dark:text-slate-400" }}
                         InputProps={{
                             className: "dark:text-white",
                             endAdornment: (
                                 <InputAdornment position="end">
-                                    <IconButton size="small" onClick={() => openModal(2)}><Search size={16} className="dark:text-gray-300" /></IconButton>
+                                    <IconButton size="small" onClick={() => openModal(2)}><Search size={16} className="dark:text-slate-300" /></IconButton>
                                 </InputAdornment>
                             )
                         }}
@@ -371,13 +371,13 @@ export default function AnalysisPage() {
                         size="small"
                         value={slot3Key}
                         onChange={(e) => setSlot3Key(e.target.value)}
-                        className="dark:bg-gray-700 rounded"
-                        InputLabelProps={{ className: "dark:text-gray-400" }}
+                        className="dark:bg-[#2d3748] rounded"
+                        InputLabelProps={{ className: "dark:text-slate-400" }}
                         InputProps={{
                             className: "dark:text-white",
                             endAdornment: (
                                 <InputAdornment position="end">
-                                    <IconButton size="small" onClick={() => openModal(3)}><Search size={16} className="dark:text-gray-300" /></IconButton>
+                                    <IconButton size="small" onClick={() => openModal(3)}><Search size={16} className="dark:text-slate-300" /></IconButton>
                                 </InputAdornment>
                             )
                         }}
@@ -389,13 +389,13 @@ export default function AnalysisPage() {
                         size="small"
                         value={slot4Key}
                         onChange={(e) => setSlot4Key(e.target.value)}
-                        className="dark:bg-gray-700 rounded"
-                        InputLabelProps={{ className: "dark:text-gray-400" }}
+                        className="dark:bg-[#2d3748] rounded"
+                        InputLabelProps={{ className: "dark:text-slate-400" }}
                         InputProps={{
                             className: "dark:text-white",
                             endAdornment: (
                                 <InputAdornment position="end">
-                                    <IconButton size="small" onClick={() => openModal(4)}><Search size={16} className="dark:text-gray-300" /></IconButton>
+                                    <IconButton size="small" onClick={() => openModal(4)}><Search size={16} className="dark:text-slate-300" /></IconButton>
                                 </InputAdornment>
                             )
                         }}

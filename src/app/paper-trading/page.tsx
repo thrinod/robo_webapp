@@ -85,7 +85,7 @@ export default function PaperTradingDashboard() {
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-white dark:bg-gray-800 p-2 border dark:border-gray-700 shadow rounded">
+                <div className="bg-white dark:bg-[#252d3d] p-2 border dark:border-[#4a6fa5] shadow rounded">
                     <p className="font-bold dark:text-white">{label}</p>
                     <p className={clsx("font-bold", payload[0].value >= 0 ? "text-green-600" : "text-red-600")}>
                         P&L: {payload[0].value.toFixed(2)}
@@ -114,12 +114,12 @@ export default function PaperTradingDashboard() {
                     </Typography>
                 </Paper>
 
-                <Paper className="p-4 bg-gray-50 dark:bg-gray-800 border dark:border-gray-700">
-                    <Typography variant="subtitle2" className="dark:text-gray-400">Win Rate</Typography>
+                <Paper className="p-4 bg-gray-50 dark:bg-[#252d3d] border dark:border-[#4a6fa5]">
+                    <Typography variant="subtitle2" className="dark:text-slate-400">Win Rate</Typography>
                     <Typography variant="h4" className="font-bold dark:text-white">
                         {stats.winRate.toFixed(1)}%
                     </Typography>
-                    <Typography variant="caption" className="dark:text-gray-400">{stats.totalTrades} Trades</Typography>
+                    <Typography variant="caption" className="dark:text-slate-400">{stats.totalTrades} Trades</Typography>
                 </Paper>
 
                 <Paper className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
@@ -138,8 +138,8 @@ export default function PaperTradingDashboard() {
             </div>
 
             {/* Daily P&L Chart */}
-            <Paper className="p-4 dark:bg-gray-800 dark:border-gray-700 h-[350px]">
-                <Typography variant="h6" className="dark:text-gray-200 mb-4 flex items-center gap-2">
+            <Paper className="p-4 dark:bg-[#252d3d] dark:border-[#4a6fa5] h-[350px]">
+                <Typography variant="h6" className="dark:text-slate-200 mb-4 flex items-center gap-2">
                     <BarChartIcon size={20} /> Daily Performance
                 </Typography>
                 <ResponsiveContainer width="100%" height="100%">
@@ -159,9 +159,9 @@ export default function PaperTradingDashboard() {
             </Paper>
 
             {/* History Table */}
-            <Paper className="dark:bg-gray-800 dark:border-gray-700">
-                <div className="p-4 border-b dark:border-gray-700">
-                    <Typography variant="h6" className="dark:text-gray-200 flex items-center gap-2">
+            <Paper className="dark:bg-[#252d3d] dark:border-[#4a6fa5]">
+                <div className="p-4 border-b dark:border-[#4a6fa5]">
+                    <Typography variant="h6" className="dark:text-slate-200 flex items-center gap-2">
                         <TrendingUp size={20} /> Trade History
                     </Typography>
                 </div>
@@ -169,37 +169,37 @@ export default function PaperTradingDashboard() {
                     <Table stickyHeader size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell className="dark:bg-gray-900 dark:text-gray-300">Time</TableCell>
-                                <TableCell className="dark:bg-gray-900 dark:text-gray-300">Symbol</TableCell>
-                                <TableCell className="dark:bg-gray-900 dark:text-gray-300">Action</TableCell>
-                                <TableCell align="right" className="dark:bg-gray-900 dark:text-gray-300">Qty</TableCell>
-                                <TableCell align="right" className="dark:bg-gray-900 dark:text-gray-300">Entry</TableCell>
-                                <TableCell align="right" className="dark:bg-gray-900 dark:text-gray-300">Exit</TableCell>
-                                <TableCell align="right" className="dark:bg-gray-900 dark:text-gray-300">P&L</TableCell>
+                                <TableCell className="dark:bg-[#1e2433] dark:text-slate-300">Time</TableCell>
+                                <TableCell className="dark:bg-[#1e2433] dark:text-slate-300">Symbol</TableCell>
+                                <TableCell className="dark:bg-[#1e2433] dark:text-slate-300">Action</TableCell>
+                                <TableCell align="right" className="dark:bg-[#1e2433] dark:text-slate-300">Qty</TableCell>
+                                <TableCell align="right" className="dark:bg-[#1e2433] dark:text-slate-300">Entry</TableCell>
+                                <TableCell align="right" className="dark:bg-[#1e2433] dark:text-slate-300">Exit</TableCell>
+                                <TableCell align="right" className="dark:bg-[#1e2433] dark:text-slate-300">P&L</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {history.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} align="center" className="dark:text-gray-400 py-8">
+                                    <TableCell colSpan={7} align="center" className="dark:text-slate-400 py-8">
                                         No Mock Trades Found
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 history.map((row: any) => (
-                                    <TableRow key={row.trade_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                        <TableCell className="dark:text-gray-300">
+                                    <TableRow key={row.trade_id} className="hover:bg-gray-50 dark:hover:bg-[#2d3748]">
+                                        <TableCell className="dark:text-slate-300">
                                             {new Date(row.timestamp).toLocaleString()}
                                         </TableCell>
-                                        <TableCell className="font-bold dark:text-gray-200">{row.trading_symbol}</TableCell>
+                                        <TableCell className="font-bold dark:text-slate-200">{row.trading_symbol}</TableCell>
                                         <TableCell>
                                             <span className={clsx("px-2 py-1 rounded text-xs font-bold", row.transaction_type === 'BUY' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')}>
                                                 {row.transaction_type}
                                             </span>
                                         </TableCell>
-                                        <TableCell align="right" className="dark:text-gray-300">{row.quantity}</TableCell>
-                                        <TableCell align="right" className="dark:text-gray-300">{row.average_price?.toFixed(2)}</TableCell>
-                                        <TableCell align="right" className="dark:text-gray-300">{row.exit_price?.toFixed(2) || '-'}</TableCell>
+                                        <TableCell align="right" className="dark:text-slate-300">{row.quantity}</TableCell>
+                                        <TableCell align="right" className="dark:text-slate-300">{row.average_price?.toFixed(2)}</TableCell>
+                                        <TableCell align="right" className="dark:text-slate-300">{row.exit_price?.toFixed(2) || '-'}</TableCell>
                                         <TableCell align="right" className={clsx("font-bold", (row.pnl || 0) >= 0 ? "text-green-600" : "text-red-600")}>
                                             {row.pnl?.toFixed(2)}
                                         </TableCell>

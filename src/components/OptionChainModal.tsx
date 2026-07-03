@@ -109,20 +109,20 @@ export default function OptionChainModal({ open, onClose, onSelect, indexKey }: 
                 {loading ? (
                     <div className="flex justify-center p-8"><CircularProgress /></div>
                 ) : (
-                    <TableContainer component={Paper} className="max-h-[60vh] bg-white dark:bg-gray-800">
+                    <TableContainer component={Paper} className="max-h-[60vh] bg-white dark:bg-[#252d3d]">
                         <Table stickyHeader size="small">
                             <TableHead>
                                 <TableRow>
                                     <TableCell align="center" colSpan={2} className="bg-green-50 dark:bg-green-900/40 dark:text-green-100">CALLS</TableCell>
-                                    <TableCell align="center" className="bg-gray-100 dark:bg-gray-700 font-bold dark:text-gray-100">STRIKE</TableCell>
+                                    <TableCell align="center" className="bg-gray-100 dark:bg-[#2d3748] font-bold dark:text-slate-100">STRIKE</TableCell>
                                     <TableCell align="center" colSpan={2} className="bg-red-50 dark:bg-red-900/40 dark:text-red-100">PUTS</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell className="dark:text-gray-300">Select</TableCell>
-                                    <TableCell align="right" className="dark:text-gray-300">LTP</TableCell>
-                                    <TableCell align="center" className="dark:text-gray-300">Strike</TableCell>
-                                    <TableCell align="right" className="dark:text-gray-300">LTP</TableCell>
-                                    <TableCell align="right" className="dark:text-gray-300">Select</TableCell>
+                                    <TableCell className="dark:text-slate-300">Select</TableCell>
+                                    <TableCell align="right" className="dark:text-slate-300">LTP</TableCell>
+                                    <TableCell align="center" className="dark:text-slate-300">Strike</TableCell>
+                                    <TableCell align="right" className="dark:text-slate-300">LTP</TableCell>
+                                    <TableCell align="right" className="dark:text-slate-300">Select</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -132,7 +132,7 @@ export default function OptionChainModal({ open, onClose, onSelect, indexKey }: 
                                     const pe = row.put_options?.market_data;
 
                                     return (
-                                        <TableRow key={row.strike_price} hover selected={isATM} className="dark:hover:bg-gray-700">
+                                        <TableRow key={row.strike_price} hover selected={isATM} className="dark:hover:bg-[#2d3748]">
                                             {/* CALL */}
                                             <TableCell>
                                                 {row.call_options && (
@@ -146,17 +146,17 @@ export default function OptionChainModal({ open, onClose, onSelect, indexKey }: 
                                                     </Button>
                                                 )}
                                             </TableCell>
-                                            <TableCell align="right" className={clsx(isATM ? "font-bold" : "", "dark:text-gray-200")}>
+                                            <TableCell align="right" className={clsx(isATM ? "font-bold" : "", "dark:text-slate-200")}>
                                                 {ce?.ltp || "-"}
                                             </TableCell>
 
                                             {/* STRIKE */}
-                                            <TableCell align="center" className="bg-gray-50 dark:bg-gray-900 font-mono font-bold dark:text-white dark:border-gray-700">
+                                            <TableCell align="center" className="bg-gray-50 dark:bg-[#1e2433] font-mono font-bold dark:text-white dark:border-[#4a6fa5]">
                                                 {row.strike_price}
                                             </TableCell>
 
                                             {/* PUT */}
-                                            <TableCell align="right" className={clsx(isATM ? "font-bold" : "", "dark:text-gray-200")}>
+                                            <TableCell align="right" className={clsx(isATM ? "font-bold" : "", "dark:text-slate-200")}>
                                                 {pe?.ltp || "-"}
                                             </TableCell>
                                             <TableCell align="right">
